@@ -1,0 +1,127 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl" xmlns:th="http://www.thymeleaf.org" xmlns:sec="http://www.thymeleaf.org/extras/spring-security">
+<head th:replace="~{fragments/common :: head('تفاصيل المهمة')}"></head>
+<body>
+<div class="layout">
+    <div th:replace="~{fragments/common :: sidebar('tasks')}"></div>
+    <div class="main">
+        <div th:replace="~{fragments/common :: topbar('تفاصيل المهمة', '<a href=&quot;/tasks&quot;>المهام</a> / تفاصيل')}"></div>
+        <div class="content">
+
+            <div class="section-title-row">
+                <h2>
+                    <i th:if="${task.shared}" class="fa-solid fa-people-arrows shared-icon"></i>
+                    <i class="fa-solid fa-list-check"></i> مهمة رقم <span th:text="${task.taskNumber}">0</span>
+                </h2>
+                <div class="row-actions">
+                    <a class="btn btn-outline btn-sm" href="javascript:history.back()"><i class="fa-solid fa-arrow-right"></i> رجوع</a>
+                    <a th:if="${canEdit}" class="btn btn-outline btn-sm" th:href="@{'/tasks/' + ${task.id} + '/edit'}"><i class="fa-solid fa-pen"></i> تعديل</a>
+                    <a th:if="${task.shared}" class="btn btn-gold btn-sm" th:href="@{'/shared-tasks/' + ${task.id}}"><i class="fa-solid fa-people-arrows"></i> إدارة المشاركين</a>
+                    <form sec:authorize="hasRole('ADMIN')" th:action="@{'/tasks/' + ${task.id} + '/delete'}" method="post" data-confirm="تأكيد حذف المهمة؟" style="margin:0">
+                        <button class="btn btn-danger btn-sm"><i class="fa-solid fa-trash"></i> حذف</button>
+                    </form>
+                </div>
+            </div>
+
+            <div class="two-col">
+                <div>
+                    <!-- التفاصيل -->
+                    <div class="card">
+                        <div class="card-header"><h3><i class="fa-solid fa-circle-info"></i> بيانات المهمة</h3>
+                            <span class="badge" th:classappend="${task.status.color}" th:text="${task.status.arabic}"></span></div>
+                        <div style="font-size:15px;font-weight:700;color:var(--green-dark);margin-bottom:14px;line-height:1.8" th:text="${task.title}">عنوان المهمة</div>
+                        <ul class="detail-list">
+                            <li><span class="k">جهة الاجتماع</span><span class="v" th:text="${task.department != null ? task.department.name : '—'}"></span></li>
+                            <li><span class="k">المسؤول الرئيسي</span><span class="v" th:text="${task.mainResponsibleName ?: '—'}"></span></li>
+                            <li><span class="k">محضر الاجتماع</span><span class="v"><a th:if="${task.meeting}" th:href="@{'/meetings/' + ${task.meeting.id}}" style="color:var(--green-main)" th:text="${task.meeting.title}"></a><span th:unless="${task.meeting}">—</span></span></li>
+                            <li><span class="k">تاريخ الاجتماع</span><span class="v" th:text="${task.meeting != null ? task.meeting.meetingDateText : '—'}"></span></li>
+                            <li><span class="k">سير العمل</span><span class="v"><span class="badge dark" th:text="${task.workflowStatus.arabic}"></span></span></li>
+                            <li><span class="k">الأولوية</span><span class="v"><span class="badge" th:classappend="${task.priority.color}" th:text="${task.priority.arabic}"></span></span></li>
+                            <li><span class="k">نسبة الإنجاز</span><span class="v"><div class="progress-wrap"><div class="progress-bar"><span th:style="'width:' + ${task.progressPercentage} + '%'"></span></div><small th:text="${task.progressPercentage} + '%'"></small></div></span></li>
+                            <li><span class="k">تاريخ الاستحقاق</span><span class="v" th:text="${task.dueDate != null ? #temporals.format(task.dueDate,'yyyy-MM-dd') : '—'}" th:style="${task.delayed}?'color:var(--red)'"></span></li>
+                            <li><span class="k">حالة التصعيد</span><span class="v"><span th:if="${task.escalated}" class="badge red" th:text="${task.escalationStatus.arabic}"></span><span th:unless="${task.escalated}">لا يوجد</span></span></li>
+                            <li><span class="k">مهمة مشتركة</span><span class="v" th:text="${task.shared ? 'نعم' : 'لا'}"></span></li>
+                        </ul>
+                        <div style="margin-top:14px"><b style="color:var(--gray-700)">الإفادة الحالية:</b>
+                            <p style="background:var(--green-pale);padding:12px;border-radius:9px;margin-top:6px" th:text="${task.feedback ?: 'لا توجد إفادة'}"></p></div>
+                    </div>
+
+                    <!-- الملاحظات -->
+                    <div class="card">
+                        <div class="card-header"><h3><i class="fa-solid fa-comments"></i> الملاحظات والتعليقات</h3></div>
+                        <form th:if="${canEdit}" th:action="@{'/tasks/' + ${task.id} + '/comment'}" method="post" style="display:flex;gap:10px;margin-bottom:16px">
+                            <input type="text" name="comment" required placeholder="أضف ملاحظة..." style="flex:1;padding:10px;border:1.5px solid var(--gray-300);border-radius:9px;font-family:inherit"/>
+                            <button class="btn btn-primary btn-sm"><i class="fa-solid fa-paper-plane"></i></button>
+                        </form>
+                        <div th:if="${#lists.isEmpty(comments)}" class="text-muted" style="text-align:center;padding:10px">لا توجد ملاحظات بعد</div>
+                        <div th:each="c : ${comments}" style="padding:10px 0;border-bottom:1px dashed var(--gray-200)">
+                            <div style="font-size:13.5px" th:text="${c.comment}"></div>
+                            <div class="text-muted" style="font-size:11.5px;margin-top:3px">
+                                <i class="fa-solid fa-user"></i> <span th:text="${c.user != null ? c.user.fullName : 'النظام'}"></span>
+                                — <span th:text="${#temporals.format(c.createdAt,'yyyy-MM-dd HH:mm')}"></span></div>
+                        </div>
+                    </div>
+                </div>
+
+                <div>
+                    <!-- تحديث الحالة -->
+                    <div class="card" th:if="${canEdit}">
+                        <div class="card-header"><h3><i class="fa-solid fa-pen-to-square"></i> تحديث الحالة</h3></div>
+                        <form th:action="@{'/tasks/' + ${task.id} + '/status'}" method="post">
+                            <div class="field"><label>الحالة</label>
+                                <select name="status">
+                                    <option th:each="st : ${allStatuses}" th:value="${st.name()}" th:text="${st.arabic}" th:selected="${task.status.name() == st.name()}"></option>
+                                </select></div>
+                            <div class="field"><label>الإفادة</label><textarea name="feedback" th:text="${task.feedback}"></textarea></div>
+                            <button class="btn btn-primary btn-sm" style="width:100%;justify-content:center"><i class="fa-solid fa-save"></i> حفظ الحالة</button>
+                        </form>
+                    </div>
+
+                    <!-- سير العمل -->
+                    <div class="card" th:if="${canEdit}">
+                        <div class="card-header"><h3><i class="fa-solid fa-diagram-project"></i> سير العمل</h3></div>
+                        <form th:action="@{'/tasks/' + ${task.id} + '/workflow'}" method="post">
+                            <div class="field"><label>نقل إلى حالة</label>
+                                <select name="target">
+                                    <option th:each="w : ${allWorkflow}" th:value="${w.name()}" th:text="${w.arabic}" th:selected="${task.workflowStatus.name() == w.name()}"></option>
+                                </select></div>
+                            <div class="field"><label>سبب/ملاحظة</label><input type="text" name="reason" placeholder="اختياري"/></div>
+                            <button class="btn btn-gold btn-sm" style="width:100%;justify-content:center"><i class="fa-solid fa-arrow-right-arrow-left"></i> تنفيذ الانتقال</button>
+                            <p class="text-muted" style="font-size:11px;margin-top:8px"><i class="fa-solid fa-circle-info"></i> لا يمكن الإغلاق قبل اعتماد الإفادة، والمهام المشتركة تتطلب اكتمال جميع الجهات.</p>
+                        </form>
+                    </div>
+
+                    <!-- إجراء تصعيد -->
+                    <div class="card" th:if="${canEdit}">
+                        <div class="card-header"><h3><i class="fa-solid fa-triangle-exclamation"></i> تصعيد المهمة</h3></div>
+                        <form th:action="@{'/escalations/task/' + ${task.id} + '/add'}" method="post">
+                            <div class="field"><label>المستوى</label>
+                                <select name="level"><option th:each="p : ${allPriorities}" th:value="${p.name()}" th:text="${p.arabic}"></option></select></div>
+                            <div class="field"><label>سبب التصعيد</label><input type="text" name="reason"/></div>
+                            <div class="field"><label>الإجراء</label><input type="text" name="action"/></div>
+                            <button class="btn btn-danger btn-sm" style="width:100%;justify-content:center"><i class="fa-solid fa-bullhorn"></i> إضافة تصعيد</button>
+                        </form>
+                    </div>
+
+                    <!-- سجل سير العمل -->
+                    <div class="card">
+                        <div class="card-header"><h3><i class="fa-solid fa-clock-rotate-left"></i> سجل التحديثات</h3></div>
+                        <div th:if="${#lists.isEmpty(history)}" class="text-muted" style="text-align:center">لا يوجد سجل بعد</div>
+                        <div th:each="h : ${history}" class="timeline-item">
+                            <div><span class="badge gray" th:text="${h.oldStatus != null ? h.oldStatus.arabic : 'بداية'}"></span>
+                                <i class="fa-solid fa-arrow-left" style="font-size:10px;color:var(--gray-500)"></i>
+                                <span class="badge green" th:text="${h.newStatus.arabic}"></span></div>
+                            <div class="t-meta" style="margin-top:4px" th:if="${h.changeReason}" th:text="${h.changeReason}"></div>
+                            <div class="t-meta"><i class="fa-solid fa-user"></i> <span th:text="${h.changedBy}"></span> — <span th:text="${#temporals.format(h.createdAt,'yyyy-MM-dd HH:mm')}"></span></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+        </div>
+    </div>
+</div>
+<div th:replace="~{fragments/common :: toasts}"></div>
+<th:block th:replace="~{fragments/common :: scripts}"></th:block>
+</body>
+</html>

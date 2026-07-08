@@ -1,0 +1,65 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl" xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{fragments/common :: head('معاينة الاستيراد')}"></head>
+<body>
+<div class="layout">
+    <div th:replace="~{fragments/common :: sidebar('import')}"></div>
+    <div class="main">
+        <div th:replace="~{fragments/common :: topbar('معاينة الاستيراد قبل الاعتماد', '<a href=&quot;/import&quot;>استيراد Excel</a> / معاينة')}"></div>
+        <div class="content">
+
+            <div class="kpi-grid" style="grid-template-columns:repeat(auto-fill,minmax(180px,1fr))">
+                <div class="kpi dark"><div class="kpi-value" th:text="${preview.totalRows}">0</div><div class="kpi-label">إجمالي الصفوف</div></div>
+                <div class="kpi green"><div class="kpi-value" th:text="${preview.newRows}">0</div><div class="kpi-label">صفوف جديدة</div></div>
+                <div class="kpi gold"><div class="kpi-value" th:text="${preview.duplicateRows}">0</div><div class="kpi-label">صفوف مكررة</div></div>
+                <div class="kpi red"><div class="kpi-value" th:text="${preview.errorRows}">0</div><div class="kpi-label">صفوف بها أخطاء</div></div>
+            </div>
+
+            <div class="card">
+                <div class="card-header"><h3><i class="fa-solid fa-clipboard-check"></i> الاعتماد النهائي</h3>
+                    <span class="badge" th:classappend="${log.importStatus.name()=='APPROVED'?'green':(log.importStatus.name()=='REJECTED'?'red':'gold')}" th:text="${log.importStatus.arabic}"></span></div>
+                <div th:if="${log.importStatus.name() == 'PENDING'}" style="display:flex;gap:12px;flex-wrap:wrap;align-items:center">
+                    <form th:action="@{'/import/' + ${log.id} + '/approve'}" method="post" style="display:flex;gap:10px;align-items:center">
+                        <label style="font-size:13px"><input type="checkbox" name="updateExisting" value="true"/> تحديث الصفوف المكررة بدل تخطيها</label>
+                        <button class="btn btn-primary"><i class="fa-solid fa-check"></i> اعتماد وإضافة إلى قاعدة البيانات</button>
+                    </form>
+                    <form th:action="@{'/import/' + ${log.id} + '/reject'}" method="post" data-confirm="رفض عملية الاستيراد؟" style="margin:0">
+                        <input type="hidden" name="reason" value="رفض من مدير النظام"/>
+                        <button class="btn btn-danger"><i class="fa-solid fa-xmark"></i> رفض</button>
+                    </form>
+                    <a th:if="${preview.errorRows > 0}" class="btn btn-light" th:href="@{'/reports/import/' + ${log.id} + '/errors.csv'}"><i class="fa-solid fa-download"></i> تنزيل ملف الأخطاء</a>
+                </div>
+                <div th:unless="${log.importStatus.name() == 'PENDING'}" class="text-muted">
+                    <i class="fa-solid fa-circle-info"></i> تمت معالجة هذه العملية مسبقًا. <span th:text="${log.notes}"></span>
+                </div>
+            </div>
+
+            <div class="card">
+                <div class="card-header"><h3><i class="fa-solid fa-table"></i> تفاصيل الصفوف</h3>
+                    <input type="text" data-table-search="#previewTable" placeholder="بحث..." style="padding:8px 12px;border:1.5px solid var(--gray-300);border-radius:9px;font-family:inherit"/></div>
+                <div class="table-wrap">
+                    <table class="data" id="previewTable">
+                        <thead><tr><th>#</th><th>النتيجة</th><th>الجهة</th><th>محضر الاجتماع</th><th>المهمة</th><th>المسؤول</th><th>الحالة</th><th>التصعيد</th><th>ملاحظة</th></tr></thead>
+                        <tbody>
+                        <tr th:each="r : ${preview.rows}">
+                            <td th:text="${r.rowNumber}"></td>
+                            <td><span class="badge" th:classappend="${r.outcome=='جديد'?'green':(r.outcome=='مكرر'?'gold':'red')}" th:text="${r.outcome}"></span></td>
+                            <td th:text="${r.department ?: '—'}"></td>
+                            <td th:text="${#strings.abbreviate(r.meetingTitle,30) ?: '—'}"></td>
+                            <td class="cell-title"><i th:if="${r.shared}" class="fa-solid fa-people-arrows shared-icon"></i> <span th:text="${#strings.abbreviate(r.taskTitle,50)}"></span></td>
+                            <td th:text="${#strings.abbreviate(r.responsible,25) ?: '—'}"></td>
+                            <td><span class="badge gray" th:text="${r.status}"></span></td>
+                            <td th:text="${r.escalation ?: '—'}"></td>
+                            <td class="text-muted" style="font-size:11px" th:text="${r.note ?: ''}"></td>
+                        </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+<div th:replace="~{fragments/common :: toasts}"></div>
+<th:block th:replace="~{fragments/common :: scripts}"></th:block>
+</body>
+</html>

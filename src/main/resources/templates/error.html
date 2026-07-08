@@ -1,0 +1,19 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8"/>
+    <title>خطأ</title>
+    <link rel="stylesheet" th:href="@{/css/app.css}"/>
+</head>
+<body style="background:var(--gray-100);display:flex;align-items:center;justify-content:center;min-height:100vh;padding:20px">
+    <div class="card" style="max-width:520px;text-align:center">
+        <img th:src="@{/images/logo.png}" style="height:64px;margin-bottom:14px" alt="شعار"/>
+        <h3 style="justify-content:center">تعذّر إتمام الطلب</h3>
+        <p style="margin:12px 0;color:var(--gray-700)">
+            <span th:text="${status} ?: ''">‎</span>
+            <span th:text="${error} ?: 'حدث خطأ غير متوقع.'">خطأ</span>
+        </p>
+        <a class="btn btn-primary" th:href="@{/dashboard}">العودة للرئيسية</a>
+    </div>
+</body>
+</html>

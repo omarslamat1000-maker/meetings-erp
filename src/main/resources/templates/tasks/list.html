@@ -1,0 +1,137 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl" xmlns:th="http://www.thymeleaf.org" xmlns:sec="http://www.thymeleaf.org/extras/spring-security">
+<head th:replace="~{fragments/common :: head('المهام')}"></head>
+<body>
+<div class="layout">
+    <div th:replace="~{fragments/common :: sidebar('tasks')}"></div>
+    <div class="main">
+        <div th:replace="~{fragments/common :: topbar('المهام', 'المهام')}"></div>
+        <div class="content">
+
+            <div class="section-title-row">
+                <h2><i class="fa-solid fa-list-check"></i> قائمة المهام</h2>
+                <div class="row-actions">
+                    <a id="exportBtn" class="btn btn-outline btn-sm"
+                       th:href="@{/reports/export/tasks.csv(q=${filter.q},departmentId=${filter.departmentId},responsible=${filter.responsible},status=${filter.status},meetingId=${filter.meetingId},escalated=${filter.escalated},shared=${filter.shared},delayed=${filter.delayed})}">
+                        <i class="fa-solid fa-file-csv"></i> تصدير Excel/CSV</a>
+                    <a sec:authorize="hasAnyRole('ADMIN','EXECUTIVE','DEPARTMENT')" class="btn btn-gold btn-sm" th:href="@{/tasks/new}">
+                        <i class="fa-solid fa-plus"></i> مهمة جديدة</a>
+                </div>
+            </div>
+
+            <!-- الفلاتر التفاعلية -->
+            <div class="card">
+                <form id="taskFilterForm" method="get" th:action="@{/tasks}">
+                    <div class="filters">
+                        <div class="field"><label>بحث عام (الاجتماع أو المهمة)</label>
+                            <input type="text" name="q" th:value="${filter.q}" placeholder="ابحث في المهام والاجتماعات والإفادات..."/></div>
+                        <div class="field"><label>جهة الاجتماع</label>
+                            <select name="departmentId">
+                                <option value="">الكل</option>
+                                <option th:each="dep : ${departments}" th:value="${dep.id}" th:text="${dep.name}"
+                                        th:selected="${filter.departmentId == dep.id}"></option>
+                            </select></div>
+                        <div class="field"><label>المسؤول</label>
+                            <input type="text" name="responsible" th:value="${filter.responsible}" placeholder="اسم المسؤول"/></div>
+                        <div class="field"><label>الحالة</label>
+                            <select name="status">
+                                <option value="">الكل</option>
+                                <option th:each="st : ${allStatuses}" th:value="${st.name()}" th:text="${st.arabic}"
+                                        th:selected="${filter.status != null and filter.status.name() == st.name()}"></option>
+                            </select></div>
+                        <div class="field"><label>محضر الاجتماع</label>
+                            <select name="meetingId">
+                                <option value="">الكل</option>
+                                <option th:each="m : ${meetings}" th:value="${m.id}" th:text="${#strings.abbreviate(m.title,40)}"
+                                        th:selected="${filter.meetingId == m.id}"></option>
+                            </select></div>
+                        <div class="field"><label>تاريخ الاجتماع من</label>
+                            <input type="date" name="dateFrom" th:value="${filter.dateFrom}"/></div>
+                        <div class="field"><label>إلى</label>
+                            <input type="date" name="dateTo" th:value="${filter.dateTo}"/></div>
+                    </div>
+
+                    <input type="hidden" name="escalated"        id="f_escalated"        th:value="${filter.escalated} ? 'true' : ''"/>
+                    <input type="hidden" name="shared"           id="f_shared"           th:value="${filter.shared} ? 'true' : ''"/>
+                    <input type="hidden" name="delayed"          id="f_delayed"          th:value="${filter.delayed} ? 'true' : ''"/>
+                    <input type="hidden" name="noFeedback"       id="f_noFeedback"       th:value="${filter.noFeedback} ? 'true' : ''"/>
+                    <input type="hidden" name="awaitingApproval" id="f_awaitingApproval" th:value="${filter.awaitingApproval} ? 'true' : ''"/>
+                    <input type="hidden" name="closed"           id="f_closed"           th:value="${filter.closed} ? 'true' : ''"/>
+
+                    <div class="chip-filters">
+                        <span class="chip" data-target="f_escalated"        th:classappend="${filter.escalated}?'active'">التصعيدات</span>
+                        <span class="chip" data-target="f_shared"           th:classappend="${filter.shared}?'active'">المهام المشتركة</span>
+                        <span class="chip" data-target="f_delayed"          th:classappend="${filter.delayed}?'active'">المتأخرة فقط</span>
+                        <span class="chip" data-target="f_noFeedback"       th:classappend="${filter.noFeedback}?'active'">دون إفادة</span>
+                        <span class="chip" data-target="f_awaitingApproval" th:classappend="${filter.awaitingApproval}?'active'">تنتظر اعتماد</span>
+                        <span class="chip" data-target="f_closed"           th:classappend="${filter.closed}?'active'">المغلقة</span>
+                        <span class="chip" onclick="resetTaskFilters()"><i class="fa-solid fa-rotate-right"></i> إعادة تعيين</span>
+                        <span class="chip" id="taskSpinner" style="display:none;border:none"><i class="fa-solid fa-spinner fa-spin"></i> جارٍ التحديث...</span>
+                    </div>
+                </form>
+            </div>
+
+            <!-- جدول المهام (يُحدَّث تفاعليًا) -->
+            <div id="tasksBody" th:fragment="tasksBody">
+                <div class="card">
+                    <div class="card-header">
+                        <h3><i class="fa-solid fa-table-list"></i> المهام (<span th:text="${#lists.size(tasks)}">0</span>)</h3>
+                    </div>
+                    <div th:if="${#lists.isEmpty(tasks)}" class="empty-state">
+                        <i class="fa-solid fa-inbox"></i><p>لا توجد مهام مطابقة</p>
+                    </div>
+                    <div class="table-wrap" th:unless="${#lists.isEmpty(tasks)}">
+                        <table class="data" id="tasksTable">
+                            <thead><tr>
+                                <th data-sort>م</th><th data-sort>المهمة المسندة</th><th data-sort>الجهة</th>
+                                <th data-sort>تاريخ الاجتماع</th>
+                                <th data-sort>المسؤول</th><th data-sort>الحالة</th><th data-sort>سير العمل</th>
+                                <th data-sort>الإنجاز</th><th>التصعيد</th><th>الاستحقاق</th><th>إجراء</th>
+                            </tr></thead>
+                            <tbody>
+                            <tr th:each="t : ${tasks}">
+                                <td th:text="${t.taskNumber}">1</td>
+                                <td class="cell-title">
+                                    <i th:if="${t.shared}" class="fa-solid fa-people-arrows shared-icon" title="مهمة مشتركة"></i>
+                                    <span th:text="${#strings.abbreviate(t.title,70)}">المهمة</span>
+                                </td>
+                                <td th:text="${t.department != null ? t.department.name : '—'}">الجهة</td>
+                                <td th:text="${t.meeting == null ? '—' : (t.meeting.meetingDateText != null ? t.meeting.meetingDateText : (t.meeting.meetingDate != null ? #temporals.format(t.meeting.meetingDate,'yyyy-MM-dd') : '—'))}">—</td>
+                                <td th:text="${#strings.abbreviate(t.mainResponsibleName,30)}">المسؤول</td>
+                                <td><span class="badge" th:classappend="${t.status.color}" th:text="${t.status.arabic}">الحالة</span></td>
+                                <td><span class="badge gray" th:text="${t.workflowStatus.arabic}">سير</span></td>
+                                <td><div class="progress-wrap"><div class="progress-bar"><span th:style="'width:' + ${t.progressPercentage} + '%'"></span></div>
+                                    <small th:text="${t.progressPercentage} + '%'">0%</small></div></td>
+                                <td><span th:if="${t.escalated}" class="badge red"><i class="fa-solid fa-triangle-exclamation"></i> <span th:text="${t.escalationStatus.arabic}"></span></span>
+                                    <span th:unless="${t.escalated}" class="text-muted">—</span></td>
+                                <td th:text="${t.dueDate != null ? #temporals.format(t.dueDate,'yyyy-MM-dd') : '—'}"
+                                    th:style="${t.delayed}?'color:var(--red);font-weight:700'">—</td>
+                                <td><a class="btn btn-outline btn-sm" th:href="@{'/tasks/' + ${t.id}}"><i class="fa-solid fa-eye"></i></a></td>
+                            </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+        </div>
+    </div>
+</div>
+<div th:replace="~{fragments/common :: toasts}"></div>
+<th:block th:replace="~{fragments/common :: scripts}"></th:block>
+<script>
+    initInteractiveFilters({
+        formId: 'taskFilterForm',
+        fragmentUrl: '/tasks/fragment',
+        bodyId: 'tasksBody',
+        pageUrl: '/tasks',
+        spinnerId: 'taskSpinner',
+        resetName: 'resetTaskFilters',
+        onUpdate: function (qs) {
+            const ex = document.getElementById('exportBtn');
+            if (ex) ex.href = '/reports/export/tasks.csv?' + qs;
+        }
+    });
+</script>
+</body>
+</html>

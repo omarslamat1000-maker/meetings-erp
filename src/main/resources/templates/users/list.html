@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl" xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{fragments/common :: head('المستخدمون')}"></head>
+<body>
+<div class="layout">
+    <div th:replace="~{fragments/common :: sidebar('users')}"></div>
+    <div class="main">
+        <div th:replace="~{fragments/common :: topbar('المستخدمون والصلاحيات', 'المستخدمون')}"></div>
+        <div class="content">
+            <div class="section-title-row"><h2><i class="fa-solid fa-users-gear"></i> المستخدمون والصلاحيات</h2>
+                <a class="btn btn-gold btn-sm" th:href="@{/users/new}"><i class="fa-solid fa-user-plus"></i> مستخدم جديد</a></div>
+            <div class="card">
+                <div class="table-wrap">
+                    <table class="data">
+                        <thead><tr><th>الاسم الكامل</th><th>اسم المستخدم</th><th>الدور</th><th>الجهة</th><th>الحالة</th><th>آخر دخول</th><th>إجراء</th></tr></thead>
+                        <tbody>
+                        <tr th:each="u : ${users}">
+                            <td class="cell-title" th:text="${u.fullName}"></td>
+                            <td><code th:text="${u.username}"></code></td>
+                            <td><span class="badge dark" th:text="${u.role.arabic}"></span></td>
+                            <td th:text="${u.department != null ? u.department.name : '—'}"></td>
+                            <td><span class="badge" th:classappend="${u.active}?'green':'gray'" th:text="${u.active?'مفعّل':'معطّل'}"></span></td>
+                            <td class="text-muted" th:text="${u.lastLogin != null ? #temporals.format(u.lastLogin,'yyyy-MM-dd HH:mm') : 'لم يدخل'}"></td>
+                            <td class="row-actions">
+                                <a class="btn btn-light btn-sm" th:href="@{'/users/' + ${u.id} + '/edit'}"><i class="fa-solid fa-pen"></i></a>
+                                <form th:action="@{'/users/' + ${u.id} + '/toggle'}" method="post" style="margin:0">
+                                    <button class="btn btn-outline btn-sm" th:text="${u.active?'تعطيل':'تفعيل'}"></button></form>
+                            </td>
+                        </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+<div th:replace="~{fragments/common :: toasts}"></div>
+<th:block th:replace="~{fragments/common :: scripts}"></th:block>
+</body>
+</html>

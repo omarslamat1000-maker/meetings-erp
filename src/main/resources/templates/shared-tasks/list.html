@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl" xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{fragments/common :: head('المهام المشتركة')}"></head>
+<body>
+<div class="layout">
+    <div th:replace="~{fragments/common :: sidebar('shared')}"></div>
+    <div class="main">
+        <div th:replace="~{fragments/common :: topbar('المهام المشتركة', 'المهام المشتركة')}"></div>
+        <div class="content">
+            <div class="section-title-row"><h2><i class="fa-solid fa-people-arrows"></i> المهام المشتركة بين الجهات</h2></div>
+            <div class="card">
+                <div class="card-header"><h3><i class="fa-solid fa-table-list"></i> القائمة (<span th:text="${#lists.size(tasks)}"></span>)</h3></div>
+                <div th:if="${#lists.isEmpty(tasks)}" class="empty-state"><i class="fa-solid fa-people-group"></i><p>لا توجد مهام مشتركة</p></div>
+                <div class="table-wrap" th:unless="${#lists.isEmpty(tasks)}">
+                    <table class="data">
+                        <thead><tr><th>المهمة</th><th>المسؤول الرئيسي</th><th>الجهة المالكة</th><th>تاريخ الاجتماع</th><th>عدد المشاركين</th><th>الحالة</th><th>سير العمل</th><th>إجراء</th></tr></thead>
+                        <tbody>
+                        <tr th:each="t : ${tasks}">
+                            <td class="cell-title"><i class="fa-solid fa-people-arrows shared-icon"></i> <span th:text="${#strings.abbreviate(t.title,60)}"></span></td>
+                            <td th:text="${#strings.abbreviate(t.mainResponsibleName,30)}"></td>
+                            <td th:text="${t.department != null ? t.department.name : '—'}"></td>
+                            <td th:text="${t.meeting == null ? '—' : (t.meeting.meetingDateText != null ? t.meeting.meetingDateText : (t.meeting.meetingDate != null ? #temporals.format(t.meeting.meetingDate,'yyyy-MM-dd') : '—'))}"></td>
+                            <td><span class="badge gold" th:text="${#lists.size(t.participants)}"></span></td>
+                            <td><span class="badge" th:classappend="${t.status.color}" th:text="${t.status.arabic}"></span></td>
+                            <td><span class="badge dark" th:text="${t.workflowStatus.arabic}"></span></td>
+                            <td><a class="btn btn-gold btn-sm" th:href="@{'/shared-tasks/' + ${t.id}}"><i class="fa-solid fa-gears"></i> إدارة</a></td>
+                        </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+<div th:replace="~{fragments/common :: toasts}"></div>
+<th:block th:replace="~{fragments/common :: scripts}"></th:block>
+</body>
+</html>

@@ -1,0 +1,84 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl" xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{fragments/common :: head('نموذج مهمة')}"></head>
+<body>
+<div class="layout">
+    <div th:replace="~{fragments/common :: sidebar('tasks')}"></div>
+    <div class="main">
+        <div th:replace="~{fragments/common :: topbar('نموذج المهمة', '<a href=&quot;/tasks&quot;>المهام</a> / نموذج')}"></div>
+        <div class="content">
+            <div class="card" style="max-width:960px">
+                <div class="card-header"><h3><i class="fa-solid fa-pen-to-square"></i>
+                    <span th:text="${task.id != null ? 'تعديل مهمة' : 'مهمة جديدة'}"></span></h3></div>
+                <form th:action="@{/tasks/save}" method="post">
+                    <input type="hidden" name="id" th:if="${task.id != null}" th:value="${task.id}"/>
+                    <div class="form-grid">
+                        <div class="field full"><label>المهمة المسندة *</label>
+                            <textarea name="title" required th:text="${task.title}"></textarea></div>
+                        <div class="field"><label>المسؤول الرئيسي (نص)</label>
+                            <input type="text" name="mainResponsibleName" th:value="${task.mainResponsibleName}" placeholder="مثال: م. مستور المعبدي + م. وسام (للمشتركة)"/></div>
+                        <div class="field"><label>ربط بمسؤول (حساب)</label>
+                            <select name="responsibleUserId"><option value="">— لا يوجد —</option>
+                                <option th:each="u : ${users}" th:value="${u.id}" th:text="${u.fullName}"
+                                        th:selected="${task.responsibleUser != null and task.responsibleUser.id == u.id}"></option></select></div>
+                        <div class="field"><label>جهة الاجتماع (الجهة الرئيسية)</label>
+                            <select name="departmentId"><option value="">— اختر —</option>
+                                <option th:each="dep : ${departments}" th:value="${dep.id}" th:text="${dep.name}"
+                                        th:selected="${task.department != null and task.department.id == dep.id}"></option></select></div>
+                        <div class="field"><label>نوع المهمة</label>
+                            <label style="display:flex;align-items:center;gap:8px;padding:10px 0;font-weight:600;cursor:pointer">
+                                <input type="checkbox" name="shared" value="true" id="sharedCheck" th:checked="${task.shared}"
+                                       onchange="toggleSharedDepts()" style="width:18px;height:18px;accent-color:var(--green-main)"/>
+                                <i class="fa-solid fa-people-arrows" style="color:var(--gold)"></i> مهمة مشتركة بين عدة جهات</label></div>
+                        <div class="field full" id="sharedDeptsField" style="display:none">
+                            <label>الجهات المشاركة في المهمة</label>
+                            <div class="ms-dd" data-placeholder="— اختر الجهات المشاركة —">
+                                <button type="button" class="ms-toggle"><span class="ms-toggle-text">— اختر الجهات المشاركة —</span></button>
+                                <div class="ms-menu">
+                                    <label th:each="dep : ${departments}">
+                                        <input type="checkbox" th:value="${dep.id}"
+                                               th:checked="${participantDeptIds != null and #lists.contains(participantDeptIds, dep.id)}"/>
+                                        <span th:text="${dep.name}"></span></label>
+                                </div>
+                                <input type="hidden" name="participantDepartmentIds" class="ms-value"/>
+                            </div></div>
+                        <div class="field"><label>محضر الاجتماع</label>
+                            <select name="meetingId"><option value="">— اختر —</option>
+                                <option th:each="m : ${meetings}" th:value="${m.id}" th:text="${#strings.abbreviate(m.title,50)}"
+                                        th:selected="${task.meeting != null and task.meeting.id == m.id}"></option></select></div>
+                        <div class="field"><label>الحالة</label>
+                            <select name="status"><option th:each="st : ${allStatuses}" th:value="${st.name()}" th:text="${st.arabic}"
+                                        th:selected="${task.status != null and task.status.name() == st.name()}"></option></select></div>
+                        <div class="field"><label>الأولوية</label>
+                            <select name="priority"><option th:each="p : ${allPriorities}" th:value="${p.name()}" th:text="${p.arabic}"
+                                        th:selected="${task.priority != null and task.priority.name() == p.name()}"></option></select></div>
+                        <div class="field"><label>تاريخ الاستحقاق</label>
+                            <input type="date" name="dueDate" th:value="${task.dueDate}"/></div>
+                        <div class="field"><label>رقم المهمة</label>
+                            <input type="number" name="taskNumber" th:value="${task.taskNumber}"/></div>
+                        <div class="field"><label>حالة التصعيد (نص)</label>
+                            <input type="text" name="escalationStatusText" th:value="${task.escalationStatusText}"/></div>
+                        <div class="field full"><label>الإفادة</label>
+                            <textarea name="feedback" th:text="${task.feedback}"></textarea></div>
+                    </div>
+                    <div class="form-actions">
+                        <button class="btn btn-primary"><i class="fa-solid fa-save"></i> حفظ المهمة</button>
+                        <a class="btn btn-outline" href="javascript:history.back()"><i class="fa-solid fa-arrow-right"></i> رجوع</a>
+                        <a class="btn btn-light" th:href="@{/tasks}">إلغاء</a>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+<div th:replace="~{fragments/common :: toasts}"></div>
+<th:block th:replace="~{fragments/common :: scripts}"></th:block>
+<script>
+    function toggleSharedDepts() {
+        const on = document.getElementById('sharedCheck').checked;
+        document.getElementById('sharedDeptsField').style.display = on ? '' : 'none';
+    }
+    document.addEventListener('DOMContentLoaded', toggleSharedDepts);
+</script>
+</body>
+</html>

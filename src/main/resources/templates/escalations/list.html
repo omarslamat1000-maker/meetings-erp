@@ -1,0 +1,65 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl" xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{fragments/common :: head('التصعيدات')}"></head>
+<body>
+<div class="layout">
+    <div th:replace="~{fragments/common :: sidebar('escalations')}"></div>
+    <div class="main">
+        <div th:replace="~{fragments/common :: topbar('التصعيدات', 'التصعيدات')}"></div>
+        <div class="content">
+            <div class="section-title-row"><h2><i class="fa-solid fa-triangle-exclamation"></i> المهام المصعّدة</h2></div>
+
+            <div class="card">
+                <div class="card-header"><h3><i class="fa-solid fa-bullhorn"></i> المهام ذات التصعيد (<span th:text="${#lists.size(tasks)}"></span>)</h3></div>
+                <div th:if="${#lists.isEmpty(tasks)}" class="empty-state"><i class="fa-solid fa-shield-halved"></i><p>لا توجد تصعيدات نشطة</p></div>
+                <div class="table-wrap" th:unless="${#lists.isEmpty(tasks)}">
+                    <table class="data">
+                        <thead><tr><th>المهمة</th><th>الجهة</th><th>تاريخ الاجتماع</th><th>المسؤول</th><th>المستوى</th><th>حالة التصعيد</th><th>عرض</th></tr></thead>
+                        <tbody>
+                        <tr th:each="t : ${tasks}" th:style="${t.escalationLevel != null and t.escalationLevel.name()=='CRITICAL'}?'background:#fdecea'">
+                            <td class="cell-title" th:text="${#strings.abbreviate(t.title,60)}"></td>
+                            <td th:text="${t.department != null ? t.department.name : '—'}"></td>
+                            <td th:text="${t.meeting == null ? '—' : (t.meeting.meetingDateText != null ? t.meeting.meetingDateText : (t.meeting.meetingDate != null ? #temporals.format(t.meeting.meetingDate,'yyyy-MM-dd') : '—'))}"></td>
+                            <td th:text="${#strings.abbreviate(t.mainResponsibleName,25)}"></td>
+                            <td><span class="badge" th:classappend="${t.escalationLevel != null ? t.escalationLevel.color : 'gray'}" th:text="${t.escalationLevel != null ? t.escalationLevel.arabic : '—'}"></span></td>
+                            <td><span class="badge red" th:text="${t.escalationStatus.arabic}"></span></td>
+                            <td><a class="btn btn-outline btn-sm" th:href="@{'/tasks/' + ${t.id}}"><i class="fa-solid fa-eye"></i></a></td>
+                        </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <div class="card">
+                <div class="card-header"><h3><i class="fa-solid fa-clipboard-list"></i> سجل إجراءات التصعيد</h3></div>
+                <div th:if="${#lists.isEmpty(escalations)}" class="empty-state"><i class="fa-solid fa-inbox"></i><p>لا توجد إجراءات تصعيد</p></div>
+                <div class="table-wrap" th:unless="${#lists.isEmpty(escalations)}">
+                    <table class="data">
+                        <thead><tr><th>المهمة</th><th>المستوى</th><th>السبب</th><th>الإجراء</th><th>الحالة</th><th>بواسطة</th><th>تحديث</th></tr></thead>
+                        <tbody>
+                        <tr th:each="e : ${escalations}">
+                            <td class="cell-title" th:text="${#strings.abbreviate(e.task.title,45)}"></td>
+                            <td><span class="badge" th:classappend="${e.escalationLevel.color}" th:text="${e.escalationLevel.arabic}"></span></td>
+                            <td th:text="${#strings.abbreviate(e.escalationReason,40) ?: '—'}"></td>
+                            <td th:text="${#strings.abbreviate(e.escalationAction,40) ?: '—'}"></td>
+                            <td><span class="badge" th:classappend="${e.escalationStatus.name()=='CLOSED' or e.escalationStatus.name()=='RESOLVED' ? 'green':'red'}" th:text="${e.escalationStatus.arabic}"></span></td>
+                            <td th:text="${e.escalatedBy}"></td>
+                            <td>
+                                <form th:action="@{'/escalations/' + ${e.id} + '/status'}" method="post" style="display:flex;gap:6px">
+                                    <select name="status" style="padding:5px;border:1px solid var(--gray-300);border-radius:6px;font-family:inherit">
+                                        <option th:each="es : ${allEscalationStatuses}" th:value="${es.name()}" th:text="${es.arabic}" th:selected="${e.escalationStatus.name()==es.name()}"></option></select>
+                                    <button class="btn btn-primary btn-sm"><i class="fa-solid fa-save"></i></button>
+                                </form>
+                            </td>
+                        </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+<div th:replace="~{fragments/common :: toasts}"></div>
+<th:block th:replace="~{fragments/common :: scripts}"></th:block>
+</body>
+</html>

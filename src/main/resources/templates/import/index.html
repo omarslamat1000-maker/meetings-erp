@@ -1,0 +1,68 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl" xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{fragments/common :: head('استيراد Excel')}"></head>
+<body>
+<div class="layout">
+    <div th:replace="~{fragments/common :: sidebar('import')}"></div>
+    <div class="main">
+        <div th:replace="~{fragments/common :: topbar('استيراد ملف Excel', 'استيراد Excel')}"></div>
+        <div class="content">
+
+            <div class="card">
+                <div class="card-header"><h3><i class="fa-solid fa-file-import"></i> رفع ملف Excel للتحديث الدوري</h3></div>
+                <p class="text-muted" style="margin-bottom:16px">
+                    ارفع ملف قاعدة بيانات منظومة الاجتماعات (بامتداد .xlsx). سيتم قراءة الأعمدة العربية تلقائيًا،
+                    وتنظيف البيانات، وكشف الصفوف الجديدة والمكررة والأخطاء، ثم عرض شاشة معاينة قبل الاعتماد النهائي.
+                </p>
+                <form th:action="@{/import/upload}" method="post" enctype="multipart/form-data" id="uploadForm">
+                    <div style="border:2px dashed var(--green-light);border-radius:14px;padding:32px;text-align:center;background:var(--green-pale)">
+                        <i class="fa-solid fa-cloud-arrow-up" style="font-size:44px;color:var(--green-main)"></i>
+                        <p style="margin:12px 0;font-weight:700">اختر ملف Excel (.xlsx / .xls)</p>
+                        <input type="file" name="file" accept=".xlsx,.xls" required style="margin:8px auto;display:block"/>
+                    </div>
+                    <div class="form-actions">
+                        <button class="btn btn-gold" id="uploadBtn"><i class="fa-solid fa-magnifying-glass"></i> رفع ومعاينة</button>
+                    </div>
+                    <div id="loading" style="display:none;margin-top:12px;color:var(--green-main)">
+                        <i class="fa-solid fa-spinner fa-spin"></i> جارٍ قراءة الملف وتحليل البيانات...</div>
+                </form>
+            </div>
+
+            <div class="card">
+                <div class="card-header"><h3><i class="fa-solid fa-clock-rotate-left"></i> سجل عمليات الاستيراد</h3></div>
+                <div th:if="${#lists.isEmpty(history)}" class="empty-state"><i class="fa-solid fa-inbox"></i><p>لا توجد عمليات استيراد سابقة</p></div>
+                <div class="table-wrap" th:unless="${#lists.isEmpty(history)}">
+                    <table class="data">
+                        <thead><tr><th>الملف</th><th>بواسطة</th><th>الإجمالي</th><th>جديدة</th><th>مكررة</th><th>أخطاء</th><th>الحالة</th><th>التاريخ</th><th>إجراء</th></tr></thead>
+                        <tbody>
+                        <tr th:each="l : ${history}">
+                            <td class="cell-title" th:text="${#strings.abbreviate(l.fileName,30)}"></td>
+                            <td th:text="${l.importedBy}"></td>
+                            <td th:text="${l.totalRows}"></td>
+                            <td><span class="badge green" th:text="${l.newRows}"></span></td>
+                            <td><span class="badge gold" th:text="${l.duplicateRows}"></span></td>
+                            <td><span class="badge red" th:text="${l.failedRows}"></span></td>
+                            <td><span class="badge" th:classappend="${l.importStatus.name()=='APPROVED'?'green':(l.importStatus.name()=='REJECTED'?'red':'gold')}" th:text="${l.importStatus.arabic}"></span></td>
+                            <td class="text-muted" th:text="${#temporals.format(l.importDate,'yyyy-MM-dd HH:mm')}"></td>
+                            <td class="row-actions">
+                                <a class="btn btn-outline btn-sm" th:href="@{'/import/' + ${l.id} + '/preview'}"><i class="fa-solid fa-eye"></i></a>
+                                <a th:if="${l.failedRows > 0}" class="btn btn-light btn-sm" th:href="@{'/reports/import/' + ${l.id} + '/errors.csv'}"><i class="fa-solid fa-download"></i> أخطاء</a>
+                            </td>
+                        </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+<div th:replace="~{fragments/common :: toasts}"></div>
+<th:block th:replace="~{fragments/common :: scripts}"></th:block>
+<script>
+    document.getElementById('uploadForm')?.addEventListener('submit', function () {
+        document.getElementById('loading').style.display = 'block';
+        document.getElementById('uploadBtn').disabled = true;
+    });
+</script>
+</body>
+</html>

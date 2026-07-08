@@ -1,0 +1,116 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl" xmlns:th="http://www.thymeleaf.org"
+      xmlns:sec="http://www.thymeleaf.org/extras/spring-security">
+<head th:fragment="head(title)">
+    <meta charset="UTF-8"/>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+    <title th:text="${title != null} ? |${title} - منصة اجتماعات نائب الأمين| : 'منصة اجتماعات نائب الأمين'">المنصة</title>
+    <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Arabic:wght@300;400;500;600;700&family=Tajawal:wght@400;500;700&display=swap" rel="stylesheet"/>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" rel="stylesheet"/>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+    <link rel="stylesheet" th:href="@{/css/app.css}"/>
+    <link rel="icon" type="image/png" th:href="@{/images/logo.png}"/>
+    <script>
+      /* تطبيق الوضع المحفوظ مبكرًا لتفادي وميض الألوان */
+      (function () { try { if (localStorage.getItem('theme') === 'dark')
+        document.documentElement.setAttribute('data-theme', 'dark'); } catch (e) {} })();
+    </script>
+</head>
+<body>
+
+<!-- ============ الشريط الجانبي ============ -->
+<aside class="sidebar" th:fragment="sidebar(active)">
+    <div class="sidebar-brand">
+        <div class="logo-box"><img th:src="@{/images/logo.png}" alt="شعار الأمانة"/></div>
+        <div>
+            <h1>منظومة الاجتماعات</h1>
+            <span>نائب الأمين للبنية التحتية</span>
+        </div>
+    </div>
+    <nav class="sidebar-nav">
+        <div class="nav-section-title">الرئيسية</div>
+        <a th:href="@{/dashboard}" class="nav-link" th:classappend="${active=='dashboard'}?'active'">
+            <i class="fa-solid fa-gauge-high"></i><span>لوحة التحكم</span></a>
+
+        <div class="nav-section-title">إدارة المنظومة</div>
+        <a th:href="@{/meetings}" class="nav-link" th:classappend="${active=='meetings'}?'active'">
+            <i class="fa-solid fa-handshake"></i><span>الاجتماعات</span></a>
+        <a th:href="@{/tasks}" class="nav-link" th:classappend="${active=='tasks'}?'active'">
+            <i class="fa-solid fa-list-check"></i><span>المهام</span></a>
+        <a th:href="@{/shared-tasks}" class="nav-link" th:classappend="${active=='shared'}?'active'">
+            <i class="fa-solid fa-people-arrows"></i><span>المهام المشتركة</span></a>
+        <a th:href="@{/escalations}" class="nav-link" th:classappend="${active=='escalations'}?'active'">
+            <i class="fa-solid fa-triangle-exclamation"></i><span>التصعيدات</span></a>
+        <a th:href="@{/notifications}" class="nav-link" th:classappend="${active=='notifications'}?'active'">
+            <i class="fa-solid fa-bell"></i><span>الإشعارات</span>
+            <span class="badge-count" th:if="${notifCount != null and notifCount > 0}" th:text="${notifCount}">0</span></a>
+
+        <div class="nav-section-title">المرجعية</div>
+        <a th:href="@{/departments}" class="nav-link" th:classappend="${active=='departments'}?'active'">
+            <i class="fa-solid fa-building"></i><span>الجهات</span></a>
+        <a th:href="@{/reports}" class="nav-link" th:classappend="${active=='reports'}?'active'">
+            <i class="fa-solid fa-chart-pie"></i><span>التقارير</span></a>
+
+        <div sec:authorize="hasRole('ADMIN')">
+            <div class="nav-section-title">الإدارة</div>
+            <a th:href="@{/import}" class="nav-link" th:classappend="${active=='import'}?'active'">
+                <i class="fa-solid fa-file-import"></i><span>استيراد Excel</span></a>
+            <a th:href="@{/users}" class="nav-link" th:classappend="${active=='users'}?'active'">
+                <i class="fa-solid fa-users-gear"></i><span>المستخدمون والصلاحيات</span></a>
+            <a th:href="@{/audit}" class="nav-link" th:classappend="${active=='audit'}?'active'">
+                <i class="fa-solid fa-clipboard-list"></i><span>سجل التدقيق</span></a>
+        </div>
+    </nav>
+</aside>
+
+<!-- ============ الشريط العلوي ============ -->
+<header class="topbar" th:fragment="topbar(title, crumb)">
+    <div style="display:flex;align-items:center;gap:14px">
+        <button class="menu-toggle" onclick="toggleSidebar()"><i class="fa-solid fa-bars"></i></button>
+        <div>
+            <div class="page-title" th:text="${title}">العنوان</div>
+            <div class="breadcrumbs">
+                <a th:href="@{/dashboard}">الرئيسية</a>
+                <span th:if="${crumb}"> / <span th:utext="${crumb}">المسار</span></span>
+            </div>
+        </div>
+    </div>
+    <div class="topbar-user">
+        <button type="button" class="notif-btn" onclick="toggleTheme()" title="تبديل الوضع الليلي/النهاري">
+            <i data-theme-icon class="fa-solid fa-moon"></i>
+        </button>
+        <a th:href="@{/notifications}" class="notif-btn" title="الإشعارات">
+            <i class="fa-solid fa-bell"></i>
+            <span class="notif-badge" th:if="${notifCount != null and notifCount > 0}"
+                  th:text="${notifCount > 99 ? '99+' : notifCount}">0</span>
+        </a>
+        <div class="user-chip" th:if="${me != null}">
+            <div class="avatar" th:text="${#strings.substring(me.fullName,0,1)}">م</div>
+            <div>
+                <div class="u-name" th:text="${me.fullName}">المستخدم</div>
+                <div class="u-role" th:text="${me.user.role.arabic}">الدور</div>
+            </div>
+        </div>
+        <form th:action="@{/logout}" method="post" style="margin:0">
+            <button class="btn btn-light btn-sm" title="تسجيل الخروج"><i class="fa-solid fa-right-from-bracket"></i> خروج</button>
+        </form>
+    </div>
+</header>
+
+<!-- ============ التنبيهات ============ -->
+<div class="toast-container" th:fragment="toasts">
+    <div class="toast" th:if="${toast}">
+        <i class="fa-solid fa-circle-check"></i><span th:text="${toast}">تم</span>
+    </div>
+    <div class="toast error" th:if="${error}">
+        <i class="fa-solid fa-circle-exclamation"></i><span th:text="${error}">خطأ</span>
+    </div>
+</div>
+
+<!-- ============ السكربتات ============ -->
+<th:block th:fragment="scripts">
+    <script th:src="@{/js/app.js}"></script>
+</th:block>
+
+</body>
+</html>

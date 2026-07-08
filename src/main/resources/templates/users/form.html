@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl" xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{fragments/common :: head('نموذج مستخدم')}"></head>
+<body>
+<div class="layout">
+    <div th:replace="~{fragments/common :: sidebar('users')}"></div>
+    <div class="main">
+        <div th:replace="~{fragments/common :: topbar('نموذج المستخدم', '<a href=&quot;/users&quot;>المستخدمون</a> / نموذج')}"></div>
+        <div class="content">
+            <div class="card" style="max-width:820px">
+                <div class="card-header"><h3><i class="fa-solid fa-user-pen"></i>
+                    <span th:text="${user.id != null ? 'تعديل مستخدم' : 'مستخدم جديد'}"></span></h3></div>
+                <form th:action="@{/users/save}" method="post">
+                    <input type="hidden" name="id" th:if="${user.id != null}" th:value="${user.id}"/>
+                    <input type="hidden" name="active" th:value="${user.id != null ? user.active : true}"/>
+                    <div class="form-grid">
+                        <div class="field"><label>الاسم الكامل *</label><input type="text" name="fullName" required th:value="${user.fullName}"/></div>
+                        <div class="field"><label>اسم المستخدم *</label><input type="text" name="username" required th:value="${user.username}" th:readonly="${user.id != null}"/></div>
+                        <div class="field"><label th:text="${user.id != null ? 'كلمة مرور جديدة (اتركها فارغة للإبقاء)' : 'كلمة المرور *'}"></label>
+                            <input type="password" name="rawPassword" th:required="${user.id == null}"/></div>
+                        <div class="field"><label>البريد الإلكتروني</label><input type="email" name="email" th:value="${user.email}"/></div>
+                        <div class="field"><label>الدور *</label>
+                            <select name="role"><option th:each="r : ${allRoles}" th:value="${r.name()}" th:text="${r.arabic}"
+                                        th:selected="${user.role != null and user.role.name() == r.name()}"></option></select></div>
+                        <div class="field"><label>الجهة المرتبطة</label>
+                            <select name="departmentId"><option value="">— لا يوجد —</option>
+                                <option th:each="dep : ${departments}" th:value="${dep.id}" th:text="${dep.name}"
+                                        th:selected="${user.department != null and user.department.id == dep.id}"></option></select></div>
+                    </div>
+                    <div class="form-actions">
+                        <button class="btn btn-primary"><i class="fa-solid fa-save"></i> حفظ المستخدم</button>
+                        <a class="btn btn-light" th:href="@{/users}">إلغاء</a>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+<div th:replace="~{fragments/common :: toasts}"></div>
+<th:block th:replace="~{fragments/common :: scripts}"></th:block>
+</body>
+</html>

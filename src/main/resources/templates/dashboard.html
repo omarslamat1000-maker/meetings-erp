@@ -1,0 +1,158 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl" xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{fragments/common :: head('لوحة التحكم')}"></head>
+<body>
+<div class="layout">
+    <div th:replace="~{fragments/common :: sidebar('dashboard')}"></div>
+    <div class="main">
+        <div th:replace="~{fragments/common :: topbar('لوحة التحكم التنفيذية', 'لوحة التحكم')}"></div>
+        <div class="content">
+
+            <!-- الفلاتر التفاعلية -->
+            <div class="card">
+                <form id="dashFilterForm" method="get" th:action="@{/dashboard}">
+                    <div class="filters">
+                        <div class="field"><label>بحث عام (الاجتماع أو المهمة)</label>
+                            <input type="text" name="q" th:value="${filter.q}" placeholder="ابحث في المهام والاجتماعات..."/></div>
+                        <div class="field"><label>جهة الاجتماع</label>
+                            <select name="departmentId"><option value="">الكل</option>
+                                <option th:each="dep : ${departments}" th:value="${dep.id}" th:text="${dep.name}"
+                                        th:selected="${filter.departmentId == dep.id}"></option></select></div>
+                        <div class="field"><label>المسؤول</label>
+                            <input type="text" name="responsible" th:value="${filter.responsible}" placeholder="اسم المسؤول"/></div>
+                        <div class="field"><label>الحالة</label>
+                            <select name="status"><option value="">الكل</option>
+                                <option th:each="st : ${allStatuses}" th:value="${st.name()}" th:text="${st.arabic}"
+                                        th:selected="${filter.status != null and filter.status.name() == st.name()}"></option></select></div>
+                        <div class="field"><label>محضر الاجتماع</label>
+                            <select name="meetingId"><option value="">الكل</option>
+                                <option th:each="m : ${meetings}" th:value="${m.id}" th:text="${#strings.abbreviate(m.title,40)}"
+                                        th:selected="${filter.meetingId == m.id}"></option></select></div>
+                        <div class="field"><label>تاريخ الاجتماع من</label>
+                            <input type="date" name="dateFrom" th:value="${filter.dateFrom}"/></div>
+                        <div class="field"><label>إلى</label>
+                            <input type="date" name="dateTo" th:value="${filter.dateTo}"/></div>
+                    </div>
+                    <div class="chip-filters">
+                        <span class="chip" onclick="resetDashFilters()"><i class="fa-solid fa-rotate-right"></i> إعادة تعيين</span>
+                        <span class="chip" id="dashSpinner" style="display:none;border:none"><i class="fa-solid fa-spinner fa-spin"></i> جارٍ التحديث...</span>
+                    </div>
+                </form>
+            </div>
+
+            <!-- جسم لوحة التحكم (يُحدَّث تفاعليًا) -->
+            <div id="dashBody" th:fragment="dashBody">
+                <div class="kpi-grid">
+                    <a class="kpi dark" th:href="@{/meetings}">
+                        <div class="kpi-icon"><i class="fa-solid fa-handshake"></i></div>
+                        <div class="kpi-value" th:text="${d.totalMeetings}">0</div><div class="kpi-label">إجمالي الاجتماعات</div></a>
+                    <a class="kpi green" th:href="@{/tasks}">
+                        <div class="kpi-icon"><i class="fa-solid fa-list-check"></i></div>
+                        <div class="kpi-value" th:text="${d.totalTasks}">0</div><div class="kpi-label">إجمالي المهام</div></a>
+                    <a class="kpi green" th:href="@{/tasks(status='COMPLETED')}">
+                        <div class="kpi-icon"><i class="fa-solid fa-circle-check"></i></div>
+                        <div class="kpi-value" th:text="${d.completedTasks}">0</div><div class="kpi-label">مهام مكتملة</div></a>
+                    <a class="kpi blue" th:href="@{/tasks(status='IN_PROGRESS')}">
+                        <div class="kpi-icon"><i class="fa-solid fa-spinner"></i></div>
+                        <div class="kpi-value" th:text="${d.inProgressTasks}">0</div><div class="kpi-label">قيد التنفيذ</div></a>
+                    <a class="kpi gold" th:href="@{/tasks(status='PARTIAL')}">
+                        <div class="kpi-icon"><i class="fa-solid fa-hourglass-half"></i></div>
+                        <div class="kpi-value" th:text="${d.partialTasks}">0</div><div class="kpi-label">تسليم جزئي</div></a>
+                    <a class="kpi red" th:href="@{/tasks(delayed=true)}">
+                        <div class="kpi-icon"><i class="fa-solid fa-clock"></i></div>
+                        <div class="kpi-value" th:text="${d.delayedTasks}">0</div><div class="kpi-label">مهام متأخرة</div></a>
+                    <a class="kpi gray" th:href="@{/tasks(status='NOT_STARTED')}">
+                        <div class="kpi-icon"><i class="fa-solid fa-circle-pause"></i></div>
+                        <div class="kpi-value" th:text="${d.notStartedTasks}">0</div><div class="kpi-label">لم تبدأ</div></a>
+                    <a class="kpi red" th:href="@{/escalations}">
+                        <div class="kpi-icon"><i class="fa-solid fa-triangle-exclamation"></i></div>
+                        <div class="kpi-value" th:text="${d.escalatedTasks}">0</div><div class="kpi-label">مهام مصعّدة</div></a>
+                    <a class="kpi gold" th:href="@{/shared-tasks}">
+                        <div class="kpi-icon"><i class="fa-solid fa-people-arrows"></i></div>
+                        <div class="kpi-value" th:text="${d.sharedTasks}">0</div><div class="kpi-label">مهام مشتركة</div></a>
+                    <div class="kpi green">
+                        <div class="kpi-icon"><i class="fa-solid fa-percent"></i></div>
+                        <div class="kpi-value" th:text="${d.overallProgress} + '%'">0%</div><div class="kpi-label">نسبة الإنجاز الكلية</div>
+                        <div class="progress-bar" style="margin-top:8px"><span th:style="'width:' + ${d.overallProgress} + '%'"></span></div></div>
+                </div>
+
+                <div class="kpi-grid" style="grid-template-columns:repeat(auto-fill,minmax(240px,1fr))">
+                    <div class="card" style="margin:0"><div class="text-muted" style="font-size:12px">أكثر جهة لديها مهام</div>
+                        <div style="font-weight:700;color:var(--green-dark);font-size:15px;margin-top:4px" th:text="${d.topDepartment ?: '—'}">—</div></div>
+                    <div class="card" style="margin:0"><div class="text-muted" style="font-size:12px">أكثر مسؤول لديه مهام</div>
+                        <div style="font-weight:700;color:var(--green-dark);font-size:15px;margin-top:4px" th:text="${d.topResponsible ?: '—'}">—</div></div>
+                    <div class="card" style="margin:0"><div class="text-muted" style="font-size:12px">آخر تحديث للبيانات</div>
+                        <div style="font-weight:700;color:var(--green-dark);font-size:14px;margin-top:4px"
+                             th:text="${d.lastUpdate != null} ? ${#temporals.format(d.lastUpdate,'yyyy-MM-dd HH:mm')} : '—'">—</div></div>
+                    <div class="card" style="margin:0"><div class="text-muted" style="font-size:12px">آخر استيراد معتمد</div>
+                        <div style="font-weight:700;color:var(--green-dark);font-size:14px;margin-top:4px"
+                             th:text="${d.lastImport != null} ? ${#temporals.format(d.lastImport,'yyyy-MM-dd HH:mm')} : 'لا يوجد'">—</div></div>
+                </div>
+
+                <div class="charts-grid">
+                    <div class="chart-box"><h4><i class="fa-solid fa-chart-pie"></i> توزيع المهام حسب الحالة</h4>
+                        <div class="chart-canvas-wrap"><canvas id="chartStatus"></canvas></div></div>
+                    <div class="chart-box"><h4><i class="fa-solid fa-building"></i> توزيع المهام حسب الجهة</h4>
+                        <div class="chart-canvas-wrap"><canvas id="chartDept"></canvas></div></div>
+                    <div class="chart-box"><h4><i class="fa-solid fa-user-tie"></i> أعلى 10 مسؤولين (عدد المهام)</h4>
+                        <div class="chart-canvas-wrap"><canvas id="chartResp"></canvas></div></div>
+                    <div class="chart-box"><h4><i class="fa-solid fa-file-lines"></i> أعلى 10 اجتماعات إنتاجًا للمهام</h4>
+                        <div class="chart-canvas-wrap"><canvas id="chartMeeting"></canvas></div></div>
+                    <div class="chart-box"><h4><i class="fa-solid fa-percent"></i> نسبة الإنجاز حسب الجهة</h4>
+                        <div class="chart-canvas-wrap"><canvas id="chartProgDept"></canvas></div></div>
+                    <div class="chart-box"><h4><i class="fa-solid fa-percent"></i> نسبة الإنجاز حسب المسؤول (أعلى 10)</h4>
+                        <div class="chart-canvas-wrap"><canvas id="chartProgResp"></canvas></div></div>
+                </div>
+
+                <script type="application/json" id="chartData" th:utext="${chartData}">{}</script>
+            </div>
+
+        </div>
+    </div>
+</div>
+<div th:replace="~{fragments/common :: toasts}"></div>
+<th:block th:replace="~{fragments/common :: scripts}"></th:block>
+<script>
+    const DASH_CHART_IDS = ['chartStatus','chartDept','chartResp','chartMeeting','chartProgDept','chartProgResp'];
+    function destroyDashCharts() {
+        DASH_CHART_IDS.forEach(id => { const el = document.getElementById(id); if (el) { const c = Chart.getChart(el); if (c) c.destroy(); } });
+    }
+    function renderDashCharts() {
+        const el = document.getElementById('chartData'); if (!el) return;
+        let c; try { c = JSON.parse(el.textContent); } catch (e) { return; }
+        makeDoughnut('chartStatus', c.status);
+        makeBar('chartDept', c.dept, true);
+        makeBar('chartResp', c.resp, true);
+        makeBar('chartMeeting', c.meeting, true);
+        makeBar('chartProgDept', c.progDept, false, 'نسبة الإنجاز %');
+        makeBar('chartProgResp', c.progResp, false, 'نسبة الإنجاز %');
+    }
+    function dashUpdate() {
+        const form = document.getElementById('dashFilterForm');
+        const qs = new URLSearchParams(new FormData(form)).toString();
+        const spinner = document.getElementById('dashSpinner'); if (spinner) spinner.style.display = 'inline-flex';
+        destroyDashCharts();
+        const body = document.getElementById('dashBody'); if (body) body.style.opacity = '0.45';
+        fetch('/dashboard/fragment?' + qs, { headers: { 'X-Requested-With': 'fetch' } })
+            .then(r => r.text()).then(html => {
+                document.getElementById('dashBody').outerHTML = html;
+                renderDashCharts();
+                history.replaceState(null, '', '/dashboard' + (qs ? '?' + qs : ''));
+                if (spinner) spinner.style.display = 'none';
+            }).catch(() => { const b = document.getElementById('dashBody'); if (b) b.style.opacity = '1'; if (spinner) spinner.style.display = 'none'; });
+    }
+    (function () {
+        const form = document.getElementById('dashFilterForm'); if (!form) return;
+        form.querySelectorAll('select').forEach(s => s.addEventListener('change', dashUpdate));
+        let t; form.querySelectorAll('input[type=text], input[type=date]').forEach(i => i.addEventListener('input', () => { clearTimeout(t); t = setTimeout(dashUpdate, 400); }));
+        form.addEventListener('submit', e => { e.preventDefault(); dashUpdate(); });
+        window.resetDashFilters = function () {
+            form.querySelectorAll('input').forEach(i => i.value = '');
+            form.querySelectorAll('select').forEach(s => s.value = '');
+            dashUpdate();
+        };
+        renderDashCharts();
+    })();
+</script>
+</body>
+</html>

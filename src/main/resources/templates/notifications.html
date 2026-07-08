@@ -1,0 +1,98 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl" xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{fragments/common :: head('الإشعارات')}"></head>
+<body>
+<div class="layout">
+    <div th:replace="~{fragments/common :: sidebar('notifications')}"></div>
+    <div class="main">
+        <div th:replace="~{fragments/common :: topbar('الإشعارات', 'الإشعارات')}"></div>
+        <div class="content">
+
+            <div class="section-title-row"><h2><i class="fa-solid fa-bell"></i> مركز الإشعارات</h2></div>
+
+            <!-- ملخص الأعداد -->
+            <div class="kpi-grid" style="grid-template-columns:repeat(auto-fill,minmax(200px,1fr))">
+                <a class="kpi green" href="#recent">
+                    <div class="kpi-icon"><i class="fa-solid fa-plus"></i></div>
+                    <div class="kpi-value" th:text="${#lists.size(n.recentTasks) + #lists.size(n.recentMeetings)}">0</div>
+                    <div class="kpi-label">مضاف حديثًا</div>
+                </a>
+                <a class="kpi red" href="#delayed">
+                    <div class="kpi-icon"><i class="fa-solid fa-clock"></i></div>
+                    <div class="kpi-value" th:text="${#lists.size(n.delayedTasks)}">0</div>
+                    <div class="kpi-label">مهام متأخرة</div>
+                </a>
+                <a class="kpi red" href="#escalated">
+                    <div class="kpi-icon"><i class="fa-solid fa-triangle-exclamation"></i></div>
+                    <div class="kpi-value" th:text="${#lists.size(n.escalatedTasks)}">0</div>
+                    <div class="kpi-label">مهام مصعّدة</div>
+                </a>
+                <a class="kpi gold" href="#shared">
+                    <div class="kpi-icon"><i class="fa-solid fa-people-arrows"></i></div>
+                    <div class="kpi-value" th:text="${#lists.size(n.sharedTasks)}">0</div>
+                    <div class="kpi-label">مهام مشتركة</div>
+                </a>
+            </div>
+
+            <!-- مضاف حديثًا -->
+            <div class="card" id="recent">
+                <div class="card-header"><h3><i class="fa-solid fa-plus" style="color:var(--green-main)"></i> مضاف حديثًا (آخر 7 أيام)</h3></div>
+                <div th:if="${#lists.isEmpty(n.recentTasks) and #lists.isEmpty(n.recentMeetings)}" class="empty-state">
+                    <i class="fa-solid fa-inbox"></i><p>لا يوجد جديد</p></div>
+                <a th:each="m : ${n.recentMeetings}" th:href="@{'/meetings/' + ${m.id}}" class="notif-item">
+                    <span class="ni-icon green"><i class="fa-solid fa-handshake"></i></span>
+                    <span class="ni-body"><b>اجتماع جديد:</b> <span th:text="${#strings.abbreviate(m.title,80)}"></span>
+                        <small th:if="${m.createdAt}" th:text="${#temporals.format(m.createdAt,'yyyy-MM-dd HH:mm')}"></small></span>
+                </a>
+                <a th:each="t : ${n.recentTasks}" th:href="@{'/tasks/' + ${t.id}}" class="notif-item">
+                    <span class="ni-icon blue"><i class="fa-solid fa-list-check"></i></span>
+                    <span class="ni-body"><b>مهمة جديدة:</b> <span th:text="${#strings.abbreviate(t.title,80)}"></span>
+                        <small><span th:text="${t.department != null ? t.department.name : ''}"></span>
+                            <span th:if="${t.createdAt}"> — <span th:text="${#temporals.format(t.createdAt,'yyyy-MM-dd HH:mm')}"></span></span></small></span>
+                </a>
+            </div>
+
+            <!-- متأخرة -->
+            <div class="card" id="delayed">
+                <div class="card-header"><h3><i class="fa-solid fa-clock" style="color:var(--red)"></i> مهام متأخرة</h3></div>
+                <div th:if="${#lists.isEmpty(n.delayedTasks)}" class="empty-state"><i class="fa-solid fa-check"></i><p>لا توجد مهام متأخرة</p></div>
+                <a th:each="t : ${n.delayedTasks}" th:href="@{'/tasks/' + ${t.id}}" class="notif-item">
+                    <span class="ni-icon red"><i class="fa-solid fa-clock"></i></span>
+                    <span class="ni-body"><b th:text="${#strings.abbreviate(t.title,80)}"></b>
+                        <small><span th:text="${t.mainResponsibleName}"></span>
+                            <span th:if="${t.dueDate}"> — الاستحقاق: <span th:text="${#temporals.format(t.dueDate,'yyyy-MM-dd')}"></span></span></small></span>
+                    <span class="badge red">متأخر</span>
+                </a>
+            </div>
+
+            <!-- مصعّدة -->
+            <div class="card" id="escalated">
+                <div class="card-header"><h3><i class="fa-solid fa-triangle-exclamation" style="color:var(--red)"></i> مهام تم تصعيدها</h3></div>
+                <div th:if="${#lists.isEmpty(n.escalatedTasks)}" class="empty-state"><i class="fa-solid fa-shield-halved"></i><p>لا توجد تصعيدات</p></div>
+                <a th:each="t : ${n.escalatedTasks}" th:href="@{'/tasks/' + ${t.id}}" class="notif-item">
+                    <span class="ni-icon red"><i class="fa-solid fa-bullhorn"></i></span>
+                    <span class="ni-body"><b th:text="${#strings.abbreviate(t.title,80)}"></b>
+                        <small><span th:text="${t.department != null ? t.department.name : ''}"></span></small></span>
+                    <span class="badge red" th:text="${t.escalationStatus.arabic}">تصعيد</span>
+                </a>
+            </div>
+
+            <!-- مشتركة -->
+            <div class="card" id="shared">
+                <div class="card-header"><h3><i class="fa-solid fa-people-arrows" style="color:var(--gold)"></i> مهام مشتركة</h3></div>
+                <div th:if="${#lists.isEmpty(n.sharedTasks)}" class="empty-state"><i class="fa-solid fa-people-group"></i><p>لا توجد مهام مشتركة</p></div>
+                <a th:each="t : ${n.sharedTasks}" th:href="@{'/shared-tasks/' + ${t.id}}" class="notif-item">
+                    <span class="ni-icon gold"><i class="fa-solid fa-people-arrows"></i></span>
+                    <span class="ni-body"><b th:text="${#strings.abbreviate(t.title,80)}"></b>
+                        <small th:text="${t.mainResponsibleName}"></small></span>
+                    <span class="badge gold" th:text="${#lists.size(t.participants)} + ' جهات'">0</span>
+                </a>
+            </div>
+
+        </div>
+    </div>
+</div>
+<div th:replace="~{fragments/common :: toasts}"></div>
+<th:block th:replace="~{fragments/common :: scripts}"></th:block>
+</body>
+</html>

@@ -1,0 +1,111 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl" xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{fragments/common :: head('نموذج اجتماع')}"></head>
+<body>
+<div class="layout">
+    <div th:replace="~{fragments/common :: sidebar('meetings')}"></div>
+    <div class="main">
+        <div th:replace="~{fragments/common :: topbar('نموذج الاجتماع', '<a href=&quot;/meetings&quot;>الاجتماعات</a> / نموذج')}"></div>
+        <div class="content">
+            <form th:action="@{/meetings/save}" method="post">
+                <input type="hidden" name="id" th:if="${meeting.id != null}" th:value="${meeting.id}"/>
+
+                <!-- بيانات الاجتماع -->
+                <div class="card" style="max-width:1000px">
+                    <div class="card-header"><h3><i class="fa-solid fa-pen-to-square"></i>
+                        <span th:text="${meeting.id != null ? 'تعديل اجتماع' : 'اجتماع جديد'}"></span></h3></div>
+                    <div class="form-grid">
+                        <div class="field full"><label>محضر الاجتماع / العنوان *</label>
+                            <textarea name="title" required th:text="${meeting.title}"></textarea></div>
+                        <div class="field"><label>الجهة</label>
+                            <select name="departmentId" id="meetingDept"><option value="">— اختر —</option>
+                                <option th:each="dep : ${departments}" th:value="${dep.id}" th:text="${dep.name}"
+                                        th:selected="${meeting.department != null and meeting.department.id == dep.id}"></option></select></div>
+                        <div class="field"><label>تاريخ الاجتماع (نص)</label>
+                            <input type="text" name="meetingDateText" th:value="${meeting.meetingDateText}" placeholder="مثال: 8-5-2026م"/></div>
+                        <div class="field"><label>تاريخ الاجتماع (لتفعيل الفلترة)</label>
+                            <input type="date" name="meetingDate" th:value="${meeting.meetingDate}"/></div>
+                        <div class="field"><label>المرجع/المحضر</label>
+                            <input type="text" name="minutesReference" th:value="${meeting.minutesReference}"/></div>
+                    </div>
+                </div>
+
+                <!-- مهام الاجتماع -->
+                <div class="card" style="max-width:1000px">
+                    <div class="card-header">
+                        <h3><i class="fa-solid fa-list-check"></i> مهام الاجتماع</h3>
+                        <button type="button" class="btn btn-gold btn-sm" onclick="addTaskRow()">
+                            <i class="fa-solid fa-plus"></i> إضافة مهمة</button>
+                    </div>
+                    <p class="text-muted" style="margin-bottom:14px;font-size:12.5px">
+                        <i class="fa-solid fa-circle-info"></i> أضف المهام الناتجة عن هذا الاجتماع؛ سترتبط به تلقائيًا. الصفوف الفارغة تُتجاهل.</p>
+
+                    <div id="taskRows">
+                        <div class="task-row" style="background:var(--gray-100);border:1px solid var(--gray-200);border-radius:12px;padding:14px;margin-bottom:12px">
+                            <div class="form-grid" style="margin-bottom:0">
+                                <div class="field full"><label>المهمة المسندة</label>
+                                    <textarea name="taskTitle" rows="2" style="min-height:auto" placeholder="نص المهمة..."></textarea></div>
+                                <div class="field"><label>المسؤول</label>
+                                    <input type="text" name="taskResponsible" placeholder="اسم المسؤول (استخدم + للمهمة المشتركة)"/></div>
+                                <div class="field"><label>الجهات (أكثر من جهة = مهمة مشتركة)</label>
+                                    <div class="ms-dd" data-placeholder="— نفس جهة الاجتماع —">
+                                        <button type="button" class="ms-toggle"><span class="ms-toggle-text">— نفس جهة الاجتماع —</span></button>
+                                        <div class="ms-menu">
+                                            <label th:each="dep : ${departments}"><input type="checkbox" th:value="${dep.id}"/> <span th:text="${dep.name}"></span></label>
+                                        </div>
+                                        <input type="hidden" name="taskDepartmentIds" class="ms-value"/>
+                                    </div></div>
+                                <div class="field"><label>الحالة</label>
+                                    <select name="taskStatus">
+                                        <option th:each="st : ${allStatuses}" th:value="${st.name()}" th:text="${st.arabic}"></option></select></div>
+                                <div class="field"><label>تاريخ الاستحقاق</label>
+                                    <input type="date" name="taskDueDate"/></div>
+                                <div class="field full"><label>الإفادة (اختياري)</label>
+                                    <input type="text" name="taskFeedback" placeholder="إفادة أولية..."/></div>
+                            </div>
+                            <div style="text-align:left;margin-top:8px">
+                                <button type="button" class="btn btn-light btn-sm" onclick="removeTaskRow(this)">
+                                    <i class="fa-solid fa-trash"></i> إزالة</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="form-actions" style="max-width:1000px">
+                    <button class="btn btn-primary"><i class="fa-solid fa-save"></i> حفظ الاجتماع والمهام</button>
+                    <a class="btn btn-outline" href="javascript:history.back()"><i class="fa-solid fa-arrow-right"></i> رجوع</a>
+                    <a class="btn btn-light" th:href="@{/meetings}">إلغاء</a>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+<div th:replace="~{fragments/common :: toasts}"></div>
+<th:block th:replace="~{fragments/common :: scripts}"></th:block>
+<script>
+    function clearRow(row) {
+        row.querySelectorAll('input[type=text], input[type=date], input[type=number], textarea').forEach(el => el.value = '');
+        row.querySelectorAll('input[type=checkbox]').forEach(el => el.checked = false);
+        row.querySelectorAll('input[type=hidden]').forEach(el => el.value = '');
+        row.querySelectorAll('select').forEach(el => el.selectedIndex = 0);
+        row.querySelectorAll('.ms-dd').forEach(dd => { dd.classList.remove('open'); if (window.updateMsDd) updateMsDd(dd); });
+    }
+    function addTaskRow() {
+        const rows = document.getElementById('taskRows');
+        const clone = rows.querySelector('.task-row').cloneNode(true);
+        clearRow(clone);
+        rows.appendChild(clone);
+    }
+    function removeTaskRow(btn) {
+        const rows = document.getElementById('taskRows');
+        const row = btn.closest('.task-row');
+        if (rows.querySelectorAll('.task-row').length > 1) {
+            row.remove();
+        } else {
+            clearRow(row);
+        }
+    }
+    // مزامنة "نفس جهة الاجتماع" افتراضيًا: لا شيء مطلوب — المتحكم يتكفل بذلك
+</script>
+</body>
+</html>

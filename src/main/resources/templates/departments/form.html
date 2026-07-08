@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl" xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{fragments/common :: head('نموذج جهة')}"></head>
+<body>
+<div class="layout">
+    <div th:replace="~{fragments/common :: sidebar('departments')}"></div>
+    <div class="main">
+        <div th:replace="~{fragments/common :: topbar('نموذج الجهة', '<a href=&quot;/departments&quot;>الجهات</a> / نموذج')}"></div>
+        <div class="content">
+            <div class="card" style="max-width:620px">
+                <div class="card-header"><h3><i class="fa-solid fa-pen-to-square"></i>
+                    <span th:text="${department.id != null ? 'تعديل جهة' : 'جهة جديدة'}"></span></h3></div>
+                <form th:action="@{/departments/save}" method="post">
+                    <input type="hidden" name="id" th:if="${department.id != null}" th:value="${department.id}"/>
+                    <input type="hidden" name="active" th:value="${department.id != null ? department.active : true}"/>
+                    <div class="field"><label>اسم الجهة *</label><input type="text" name="name" required th:value="${department.name}"/></div>
+                    <div class="field"><label>الجهة الأعلى (التسلسل الإداري)</label>
+                        <select name="parentId">
+                            <option value="">— لا يوجد (جهة عليا) —</option>
+                            <option th:each="d : ${allDepartments}" th:if="${d.id != department.id}"
+                                    th:value="${d.id}" th:text="${d.name}"
+                                    th:selected="${department.parent != null and department.parent.id == d.id}"></option>
+                        </select></div>
+                    <div class="field full"><label>الوصف</label><textarea name="description" th:text="${department.description}"></textarea></div>
+                    <div class="form-actions">
+                        <button class="btn btn-primary"><i class="fa-solid fa-save"></i> حفظ</button>
+                        <a class="btn btn-light" th:href="@{/departments}">إلغاء</a>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+<div th:replace="~{fragments/common :: toasts}"></div>
+<th:block th:replace="~{fragments/common :: scripts}"></th:block>
+</body>
+</html>

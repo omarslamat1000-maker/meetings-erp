@@ -1,0 +1,21 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl" xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{fragments/common :: head('تنبيه')}"></head>
+<body>
+<div class="layout">
+    <div th:replace="~{fragments/common :: sidebar('')}"></div>
+    <div class="main">
+        <div th:replace="~{fragments/common :: topbar('تنبيه', 'تنبيه')}"></div>
+        <div class="content">
+            <div class="card" style="max-width:620px;margin:40px auto;text-align:center">
+                <i class="fa-solid fa-shield-halved" style="font-size:56px;color:var(--gold);margin-bottom:16px"></i>
+                <h3 style="justify-content:center">تنبيه صلاحيات</h3>
+                <p style="margin:14px 0;font-size:15px" th:text="${message ?: 'حدث خطأ غير متوقع.'}">رسالة</p>
+                <a class="btn btn-primary" th:href="@{/dashboard}"><i class="fa-solid fa-house"></i> العودة للوحة التحكم</a>
+            </div>
+        </div>
+    </div>
+</div>
+<th:block th:replace="~{fragments/common :: scripts}"></th:block>
+</body>
+</html>

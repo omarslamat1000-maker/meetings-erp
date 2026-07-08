@@ -1,0 +1,49 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl" xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{fragments/common :: head('تفاصيل الاجتماع')}"></head>
+<body>
+<div class="layout">
+    <div th:replace="~{fragments/common :: sidebar('meetings')}"></div>
+    <div class="main">
+        <div th:replace="~{fragments/common :: topbar('تفاصيل الاجتماع', '<a href=&quot;/meetings&quot;>الاجتماعات</a> / تفاصيل')}"></div>
+        <div class="content">
+            <div class="section-title-row">
+                <h2><i class="fa-solid fa-handshake"></i> تفاصيل الاجتماع</h2>
+                <a class="btn btn-outline btn-sm" href="javascript:history.back()"><i class="fa-solid fa-arrow-right"></i> رجوع</a>
+            </div>
+            <div class="card">
+                <div class="card-header"><h3><i class="fa-solid fa-handshake"></i> بيانات الاجتماع</h3></div>
+                <ul class="detail-list">
+                    <li><span class="k">محضر الاجتماع</span><span class="v" th:text="${meeting.title}"></span></li>
+                    <li><span class="k">الجهة</span><span class="v" th:text="${meeting.department != null ? meeting.department.name : '—'}"></span></li>
+                    <li><span class="k">تاريخ الاجتماع</span><span class="v" th:text="${meeting.meetingDateText ?: '—'}"></span></li>
+                    <li><span class="k">عدد المهام</span><span class="v" th:text="${meeting.taskCount}"></span></li>
+                    <li><span class="k">أنشئ بواسطة</span><span class="v" th:text="${meeting.createdBy ?: '—'}"></span></li>
+                </ul>
+            </div>
+            <div class="card">
+                <div class="card-header"><h3><i class="fa-solid fa-list-check"></i> المهام الناتجة عن الاجتماع (<span th:text="${#lists.size(tasks)}"></span>)</h3></div>
+                <div th:if="${#lists.isEmpty(tasks)}" class="empty-state"><i class="fa-solid fa-inbox"></i><p>لا توجد مهام مرتبطة</p></div>
+                <div class="table-wrap" th:unless="${#lists.isEmpty(tasks)}">
+                    <table class="data">
+                        <thead><tr><th>م</th><th>المهمة</th><th>المسؤول</th><th>الحالة</th><th>الإنجاز</th><th>إجراء</th></tr></thead>
+                        <tbody>
+                        <tr th:each="t : ${tasks}">
+                            <td th:text="${t.taskNumber}"></td>
+                            <td class="cell-title"><i th:if="${t.shared}" class="fa-solid fa-people-arrows shared-icon"></i> <span th:text="${#strings.abbreviate(t.title,60)}"></span></td>
+                            <td th:text="${#strings.abbreviate(t.mainResponsibleName,30)}"></td>
+                            <td><span class="badge" th:classappend="${t.status.color}" th:text="${t.status.arabic}"></span></td>
+                            <td><div class="progress-wrap"><div class="progress-bar"><span th:style="'width:' + ${t.progressPercentage} + '%'"></span></div><small th:text="${t.progressPercentage}+'%'"></small></div></td>
+                            <td><a class="btn btn-outline btn-sm" th:href="@{'/tasks/' + ${t.id}}"><i class="fa-solid fa-eye"></i></a></td>
+                        </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+<div th:replace="~{fragments/common :: toasts}"></div>
+<th:block th:replace="~{fragments/common :: scripts}"></th:block>
+</body>
+</html>

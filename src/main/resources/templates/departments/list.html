@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl" xmlns:th="http://www.thymeleaf.org" xmlns:sec="http://www.thymeleaf.org/extras/spring-security">
+<head th:replace="~{fragments/common :: head('الجهات')}"></head>
+<body>
+<div class="layout">
+    <div th:replace="~{fragments/common :: sidebar('departments')}"></div>
+    <div class="main">
+        <div th:replace="~{fragments/common :: topbar('الجهات', 'الجهات')}"></div>
+        <div class="content">
+            <div class="section-title-row"><h2><i class="fa-solid fa-building"></i> إدارة الجهات</h2>
+                <a sec:authorize="hasRole('ADMIN')" class="btn btn-gold btn-sm" th:href="@{/departments/new}"><i class="fa-solid fa-plus"></i> جهة جديدة</a></div>
+            <div class="card">
+                <div th:if="${#lists.isEmpty(departments)}" class="empty-state"><i class="fa-solid fa-inbox"></i><p>لا توجد جهات</p></div>
+                <div class="table-wrap" th:unless="${#lists.isEmpty(departments)}">
+                    <table class="data">
+                        <thead><tr><th>الجهة</th><th>الجهة الأعلى</th><th>الوصف</th><th>الحالة</th><th sec:authorize="hasRole('ADMIN')">إجراء</th></tr></thead>
+                        <tbody>
+                        <tr th:each="dep : ${departments}">
+                            <td class="cell-title" th:text="${dep.name}"></td>
+                            <td th:text="${dep.parent != null ? dep.parent.name : '—'}" th:classappend="${dep.parent == null}?'text-muted'"></td>
+                            <td th:text="${dep.description ?: '—'}"></td>
+                            <td><span class="badge" th:classappend="${dep.active}?'green':'gray'" th:text="${dep.active?'مفعّلة':'معطّلة'}"></span></td>
+                            <td sec:authorize="hasRole('ADMIN')" class="row-actions">
+                                <a class="btn btn-light btn-sm" th:href="@{'/departments/' + ${dep.id} + '/edit'}"><i class="fa-solid fa-pen"></i></a>
+                                <form th:action="@{'/departments/' + ${dep.id} + '/toggle'}" method="post" style="margin:0">
+                                    <button class="btn btn-outline btn-sm" th:text="${dep.active?'تعطيل':'تفعيل'}"></button></form>
+                            </td>
+                        </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+<div th:replace="~{fragments/common :: toasts}"></div>
+<th:block th:replace="~{fragments/common :: scripts}"></th:block>
+</body>
+</html>

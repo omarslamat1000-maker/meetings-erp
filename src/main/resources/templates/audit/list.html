@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl" xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{fragments/common :: head('سجل التدقيق')}"></head>
+<body>
+<div class="layout">
+    <div th:replace="~{fragments/common :: sidebar('audit')}"></div>
+    <div class="main">
+        <div th:replace="~{fragments/common :: topbar('سجل التدقيق', 'سجل التدقيق')}"></div>
+        <div class="content">
+            <div class="card">
+                <div class="card-header"><h3><i class="fa-solid fa-clipboard-list"></i> سجل التدقيق (Audit Log)</h3></div>
+                <div class="table-wrap">
+                    <table class="data">
+                        <thead><tr><th>التاريخ</th><th>المستخدم</th><th>الإجراء</th><th>الكيان</th><th>المعرّف</th><th>القيمة</th></tr></thead>
+                        <tbody>
+                        <tr th:each="l : ${logs.content}">
+                            <td class="text-muted" th:text="${#temporals.format(l.createdAt,'yyyy-MM-dd HH:mm')}"></td>
+                            <td th:text="${l.username}"></td>
+                            <td><span class="badge dark" th:text="${l.action}"></span></td>
+                            <td th:text="${l.entityName}"></td>
+                            <td th:text="${l.entityId}"></td>
+                            <td th:text="${#strings.abbreviate(l.newValue,50) ?: '—'}"></td>
+                        </tr>
+                        </tbody>
+                    </table>
+                </div>
+                <div style="display:flex;gap:10px;justify-content:center;margin-top:16px" th:if="${logs.totalPages > 1}">
+                    <a th:if="${!logs.first}" class="btn btn-light btn-sm" th:href="@{/audit(page=${logs.number - 1})}">السابق</a>
+                    <span class="badge gray">صفحة <span th:text="${logs.number + 1}"></span> من <span th:text="${logs.totalPages}"></span></span>
+                    <a th:if="${!logs.last}" class="btn btn-light btn-sm" th:href="@{/audit(page=${logs.number + 1})}">التالي</a>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+<div th:replace="~{fragments/common :: toasts}"></div>
+<th:block th:replace="~{fragments/common :: scripts}"></th:block>
+</body>
+</html>

@@ -1,0 +1,94 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl" xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{fragments/common :: head('إدارة مهمة مشتركة')}"></head>
+<body>
+<div class="layout">
+    <div th:replace="~{fragments/common :: sidebar('shared')}"></div>
+    <div class="main">
+        <div th:replace="~{fragments/common :: topbar('إدارة مهمة مشتركة', '<a href=&quot;/shared-tasks&quot;>المهام المشتركة</a> / إدارة')}"></div>
+        <div class="content">
+
+            <div class="section-title-row">
+                <h2><i class="fa-solid fa-people-arrows"></i> إدارة مهمة مشتركة</h2>
+                <a class="btn btn-outline btn-sm" th:href="@{/shared-tasks}"><i class="fa-solid fa-arrow-right"></i> رجوع إلى المهام المشتركة</a>
+            </div>
+
+            <div class="card">
+                <div class="card-header"><h3><i class="fa-solid fa-people-arrows"></i> بيانات المهمة المشتركة</h3>
+                    <span class="badge" th:classappend="${task.status.color}" th:text="${task.status.arabic}"></span></div>
+                <div style="font-size:15px;font-weight:700;color:var(--green-dark);margin-bottom:12px" th:text="${task.title}"></div>
+                <ul class="detail-list">
+                    <li><span class="k">المسؤول الرئيسي</span><span class="v" th:text="${task.mainResponsibleName ?: '—'}"></span></li>
+                    <li><span class="k">الجهة المالكة</span><span class="v" th:text="${task.department != null ? task.department.name : '—'}"></span></li>
+                    <li><span class="k">سير العمل</span><span class="v"><span class="badge dark" th:text="${task.workflowStatus.arabic}"></span></span></li>
+                    <li><span class="k">حالة الاعتماد</span><span class="v" th:text="${task.workflowStatus.name() == 'CLOSED' ? 'مغلقة ومعتمدة' : 'قيد المتابعة'}"></span></li>
+                </ul>
+            </div>
+
+            <!-- جدول المشاركين -->
+            <div class="card">
+                <div class="card-header"><h3><i class="fa-solid fa-users"></i> الجهات والمسؤولون المشاركون</h3></div>
+                <div th:if="${#lists.isEmpty(participants)}" class="empty-state"><i class="fa-solid fa-user-plus"></i><p>لا يوجد مشاركون بعد</p></div>
+                <div class="table-wrap" th:unless="${#lists.isEmpty(participants)}">
+                    <table class="data">
+                        <thead><tr><th>المشارك</th><th>الجهة</th><th>الإجراء المطلوب</th><th>حالة الإنجاز</th><th>الإنجاز</th><th>الاعتماد</th><th th:if="${canEdit}">تحديث</th></tr></thead>
+                        <tbody>
+                        <tr th:each="p : ${participants}">
+                            <td class="cell-title" th:text="${p.participantName ?: (p.user != null ? p.user.fullName : '—')}"></td>
+                            <td th:text="${p.department != null ? p.department.name : '—'}"></td>
+                            <td th:text="${p.actionRequired ?: '—'}"></td>
+                            <td><span class="badge" th:classappend="${p.participantStatus.color}" th:text="${p.participantStatus.arabic}"></span></td>
+                            <td><div class="progress-wrap"><div class="progress-bar"><span th:style="'width:' + ${p.participantProgress} + '%'"></span></div><small th:text="${p.participantProgress}+'%'"></small></div></td>
+                            <td><span th:if="${p.approved}" class="badge green"><i class="fa-solid fa-check"></i> معتمد</span>
+                                <span th:unless="${p.approved}" class="badge gray">بانتظار</span></td>
+                            <td th:if="${canEdit}">
+                                <form th:action="@{'/shared-tasks/' + ${task.id} + '/participant/' + ${p.id} + '/update'}" method="post" style="display:flex;gap:6px;align-items:center;flex-wrap:wrap">
+                                    <select name="status" style="padding:5px;border:1px solid var(--gray-300);border-radius:6px;font-family:inherit">
+                                        <option th:each="ps : ${allParticipantStatuses}" th:value="${ps.name()}" th:text="${ps.arabic}" th:selected="${p.participantStatus.name()==ps.name()}"></option></select>
+                                    <input type="number" name="progress" th:value="${p.participantProgress}" min="0" max="100" style="width:64px;padding:5px;border:1px solid var(--gray-300);border-radius:6px"/>
+                                    <label style="font-size:11px"><input type="checkbox" name="approved" value="true" th:checked="${p.approved}"/> اعتماد</label>
+                                    <button class="btn btn-primary btn-sm"><i class="fa-solid fa-save"></i></button>
+                                </form>
+                            </td>
+                        </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <div class="two-col">
+                <!-- إضافة مشارك -->
+                <div class="card" th:if="${canEdit}">
+                    <div class="card-header"><h3><i class="fa-solid fa-user-plus"></i> إضافة جهة/مسؤول مشارك</h3></div>
+                    <form th:action="@{'/shared-tasks/' + ${task.id} + '/participant'}" method="post">
+                        <div class="field"><label>اسم المشارك *</label><input type="text" name="participantName" required/></div>
+                        <div class="field"><label>الجهة المشاركة</label>
+                            <select name="departmentId"><option value="">— اختر —</option>
+                                <option th:each="dep : ${departments}" th:value="${dep.id}" th:text="${dep.name}"></option></select></div>
+                        <div class="field"><label>ربط بحساب مسؤول</label>
+                            <select name="userId"><option value="">— لا يوجد —</option>
+                                <option th:each="u : ${users}" th:value="${u.id}" th:text="${u.fullName}"></option></select></div>
+                        <div class="field"><label>الإجراء المطلوب من الجهة</label><textarea name="actionRequired"></textarea></div>
+                        <button class="btn btn-primary btn-sm"><i class="fa-solid fa-plus"></i> إضافة المشارك</button>
+                    </form>
+                </div>
+
+                <!-- الإغلاق -->
+                <div class="card" th:if="${canEdit}">
+                    <div class="card-header"><h3><i class="fa-solid fa-lock"></i> إغلاق المهمة المشتركة</h3></div>
+                    <p class="text-muted" style="font-size:12.5px;margin-bottom:12px">
+                        <i class="fa-solid fa-circle-info"></i> لا يمكن الإغلاق إلا بعد اكتمال واعتماد إجراءات جميع الجهات المشاركة، أو باعتماد مدير النظام.</p>
+                    <form th:action="@{'/shared-tasks/' + ${task.id} + '/close'}" method="post">
+                        <div class="field"><label>ملاحظة الإغلاق</label><input type="text" name="reason"/></div>
+                        <button class="btn btn-gold btn-sm"><i class="fa-solid fa-lock"></i> إغلاق المهمة</button>
+                    </form>
+                </div>
+            </div>
+
+        </div>
+    </div>
+</div>
+<div th:replace="~{fragments/common :: toasts}"></div>
+<th:block th:replace="~{fragments/common :: scripts}"></th:block>
+</body>
+</html>

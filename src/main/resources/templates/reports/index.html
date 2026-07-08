@@ -1,0 +1,191 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl" xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{fragments/common :: head('التقارير')}"></head>
+<body>
+<div class="layout">
+    <div th:replace="~{fragments/common :: sidebar('reports')}"></div>
+    <div class="main">
+        <div th:replace="~{fragments/common :: topbar('التقارير التنفيذية', 'التقارير')}"></div>
+        <div class="content">
+            <div class="section-title-row no-print">
+                <h2><i class="fa-solid fa-chart-pie"></i> التقرير التنفيذي المختصر</h2>
+                <div class="row-actions">
+                    <a id="exportBtn" class="btn btn-outline btn-sm"
+                       th:href="@{/reports/export/tasks.csv(q=${filter.q},departmentId=${filter.departmentId},responsible=${filter.responsible},statuses=${filter.statuses},meetingId=${filter.meetingId},escalated=${filter.escalated},shared=${filter.shared},delayed=${filter.delayed})}"><i class="fa-solid fa-file-csv"></i> تصدير Excel/CSV</a>
+                    <button class="btn btn-gold btn-sm" onclick="window.print()"><i class="fa-solid fa-print"></i> طباعة / PDF</button>
+                </div>
+            </div>
+
+            <!-- فلاتر التقرير التفاعلية -->
+            <div class="card no-print">
+                <form id="reportFilterForm" method="get" th:action="@{/reports}">
+                    <div class="filters">
+                        <div class="field"><label>بحث عام</label>
+                            <input type="text" name="q" th:value="${filter.q}" placeholder="ابحث في المهام والإفادات..."/></div>
+                        <div class="field"><label>جهة الاجتماع</label>
+                            <select name="departmentId"><option value="">الكل</option>
+                                <option th:each="dep : ${departments}" th:value="${dep.id}" th:text="${dep.name}"
+                                        th:selected="${filter.departmentId == dep.id}"></option></select></div>
+                        <div class="field"><label>المسؤول</label>
+                            <input type="text" name="responsible" th:value="${filter.responsible}" placeholder="اسم المسؤول"/></div>
+                        <div class="field"><label>الحالة (اختيار متعدد)</label>
+                            <div class="ms-dd" data-placeholder="الكل" data-unit="حالة">
+                                <button type="button" class="ms-toggle"><span class="ms-toggle-text">الكل</span></button>
+                                <div class="ms-menu">
+                                    <label th:each="st : ${allStatuses}">
+                                        <input type="checkbox" th:value="${st.name()}"
+                                               th:checked="${filter.statuses != null and #lists.contains(filter.statuses, st)}"/>
+                                        <span th:text="${st.arabic}"></span></label>
+                                </div>
+                                <input type="hidden" name="statuses" class="ms-value"/>
+                            </div></div>
+                        <div class="field"><label>محضر الاجتماع</label>
+                            <select name="meetingId"><option value="">الكل</option>
+                                <option th:each="m : ${meetings}" th:value="${m.id}" th:text="${#strings.abbreviate(m.title,40)}"
+                                        th:selected="${filter.meetingId == m.id}"></option></select></div>
+                        <div class="field"><label>تاريخ الاجتماع من</label>
+                            <input type="date" name="dateFrom" th:value="${filter.dateFrom}"/></div>
+                        <div class="field"><label>إلى</label>
+                            <input type="date" name="dateTo" th:value="${filter.dateTo}"/></div>
+                    </div>
+
+                    <!-- مفاتيح مخفية للفلاتر السريعة -->
+                    <input type="hidden" name="escalated"  id="f_escalated"  th:value="${filter.escalated}  ? 'true' : ''"/>
+                    <input type="hidden" name="shared"     id="f_shared"     th:value="${filter.shared}     ? 'true' : ''"/>
+                    <input type="hidden" name="delayed"    id="f_delayed"    th:value="${filter.delayed}    ? 'true' : ''"/>
+                    <input type="hidden" name="noFeedback" id="f_noFeedback" th:value="${filter.noFeedback} ? 'true' : ''"/>
+
+                    <div class="chip-filters">
+                        <span class="chip" data-target="f_escalated"  th:classappend="${filter.escalated}?'active'">التصعيدات</span>
+                        <span class="chip" data-target="f_shared"     th:classappend="${filter.shared}?'active'">المهام المشتركة</span>
+                        <span class="chip" data-target="f_delayed"    th:classappend="${filter.delayed}?'active'">المتأخرة فقط</span>
+                        <span class="chip" data-target="f_noFeedback" th:classappend="${filter.noFeedback}?'active'">دون إفادة</span>
+                        <span class="chip" onclick="resetReport()"><i class="fa-solid fa-rotate-right"></i> إعادة تعيين</span>
+                        <span class="chip" id="filterSpinner" style="display:none;border:none"><i class="fa-solid fa-spinner fa-spin"></i> جارٍ التحديث...</span>
+                    </div>
+                </form>
+            </div>
+
+            <!-- ترويسة التقرير (للطباعة) -->
+            <div class="card" style="text-align:center">
+                <img th:src="@{/images/logo.png}" style="height:70px;margin-bottom:8px" alt="شعار"/>
+                <h3 style="justify-content:center">منصة متابعة منظومة اجتماعات نائب الأمين للبنية التحتية</h3>
+                <p class="text-muted">تقرير تنفيذي مختصر — أمانة منطقة المدينة المنورة</p>
+            </div>
+
+            <!-- جسم التقرير (يُحدَّث تفاعليًا) -->
+            <div id="reportBody" th:fragment="reportBody">
+                <div class="kpi-grid">
+                    <div class="kpi dark"><div class="kpi-value" th:text="${d.totalMeetings}"></div><div class="kpi-label">الاجتماعات</div></div>
+                    <div class="kpi green"><div class="kpi-value" th:text="${d.totalTasks}"></div><div class="kpi-label">المهام</div></div>
+                    <div class="kpi green"><div class="kpi-value" th:text="${d.completedTasks}"></div><div class="kpi-label">مكتملة</div></div>
+                    <div class="kpi blue"><div class="kpi-value" th:text="${d.inProgressTasks}"></div><div class="kpi-label">قيد التنفيذ</div></div>
+                    <div class="kpi gold"><div class="kpi-value" th:text="${d.partialTasks}"></div><div class="kpi-label">تسليم جزئي</div></div>
+                    <div class="kpi red"><div class="kpi-value" th:text="${d.delayedTasks}"></div><div class="kpi-label">متأخرة</div></div>
+                    <div class="kpi gray"><div class="kpi-value" th:text="${d.notStartedTasks}"></div><div class="kpi-label">لم تبدأ</div></div>
+                    <div class="kpi red"><div class="kpi-value" th:text="${d.escalatedTasks}"></div><div class="kpi-label">مصعّدة</div></div>
+                    <div class="kpi gold"><div class="kpi-value" th:text="${d.sharedTasks}"></div><div class="kpi-label">مشتركة</div></div>
+                    <div class="kpi green"><div class="kpi-value" th:text="${d.overallProgress}+'%'"></div><div class="kpi-label">نسبة الإنجاز الكلية</div></div>
+                </div>
+
+                <div class="card">
+                    <div class="card-header"><h3><i class="fa-solid fa-table-list"></i> تفصيل المهام
+                        (<span th:text="${#lists.size(tasks)}">0</span>)</h3></div>
+                    <div th:if="${#lists.isEmpty(tasks)}" class="empty-state"><i class="fa-solid fa-inbox"></i><p>لا توجد مهام مطابقة للفلاتر</p></div>
+                    <div class="table-wrap" th:unless="${#lists.isEmpty(tasks)}">
+                        <table class="data">
+                            <thead><tr><th>م</th><th>المهمة</th><th>الجهة</th><th>تاريخ الاجتماع</th><th>المسؤول</th><th>الحالة</th><th>سير العمل</th><th>الإنجاز</th><th>التصعيد</th></tr></thead>
+                            <tbody>
+                            <tr th:each="t : ${tasks}">
+                                <td th:text="${t.taskNumber}"></td>
+                                <td class="cell-title" th:text="${#strings.abbreviate(t.title,70)}"></td>
+                                <td th:text="${t.department != null ? t.department.name : '—'}"></td>
+                                <td th:text="${t.meeting == null ? '—' : (t.meeting.meetingDateText != null ? t.meeting.meetingDateText : (t.meeting.meetingDate != null ? #temporals.format(t.meeting.meetingDate,'yyyy-MM-dd') : '—'))}"></td>
+                                <td th:text="${#strings.abbreviate(t.mainResponsibleName,25)}"></td>
+                                <td><span class="badge" th:classappend="${t.status.color}" th:text="${t.status.arabic}"></span></td>
+                                <td><span class="badge gray" th:text="${t.workflowStatus.arabic}"></span></td>
+                                <td th:text="${t.progressPercentage}+'%'"></td>
+                                <td><span th:if="${t.escalated}" class="badge red" th:text="${t.escalationStatus.arabic}"></span>
+                                    <span th:unless="${t.escalated}" class="text-muted">—</span></td>
+                            </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+        </div>
+    </div>
+</div>
+<div th:replace="~{fragments/common :: toasts}"></div>
+<th:block th:replace="~{fragments/common :: scripts}"></th:block>
+<script>
+    (function () {
+        const form = document.getElementById('reportFilterForm');
+        if (!form) return;
+
+        function queryString() {
+            return new URLSearchParams(new FormData(form)).toString();
+        }
+        let reqSeq = 0;
+        function updateReport() {
+            const qs = queryString();
+            const mySeq = ++reqSeq;
+            const spinner = document.getElementById('filterSpinner');
+            if (spinner) spinner.style.display = 'inline-flex';
+            const body = document.getElementById('reportBody');
+            body.style.opacity = '0.45';
+            fetch('/reports/fragment?' + qs, { headers: { 'X-Requested-With': 'fetch' } })
+                .then(r => r.text())
+                .then(html => {
+                    if (mySeq !== reqSeq) return; // تجاهل الاستجابات القديمة
+                    document.getElementById('reportBody').outerHTML = html;
+                    const ex = document.getElementById('exportBtn');
+                    if (ex) ex.href = '/reports/export/tasks.csv?' + qs;
+                    history.replaceState(null, '', '/reports?' + qs);
+                    if (spinner) spinner.style.display = 'none';
+                })
+                .catch(() => {
+                    if (mySeq !== reqSeq) return;
+                    document.getElementById('reportBody').style.opacity = '1';
+                    if (spinner) spinner.style.display = 'none';
+                });
+        }
+
+        // القوائم المنسدلة: تحديث فوري
+        form.querySelectorAll('select').forEach(s => s.addEventListener('change', updateReport));
+
+        // حقول البحث النصية والتواريخ: تحديث بعد توقف الكتابة
+        let timer;
+        form.querySelectorAll('input[type=text], input[type=date]').forEach(inp => inp.addEventListener('input', function () {
+            clearTimeout(timer); timer = setTimeout(updateReport, 400);
+        }));
+
+        // فلتر الحالة متعدد الاختيار (checkboxes): تحديث فور تغيير الاختيار
+        form.querySelectorAll('.ms-menu input[type=checkbox]').forEach(cb => cb.addEventListener('change', function () {
+            if (window.updateMsDd) updateMsDd(this.closest('.ms-dd'));
+            updateReport();
+        }));
+
+        // الفلاتر السريعة (chips): تبديل الحالة ثم تحديث
+        form.querySelectorAll('.chip[data-target]').forEach(chip => chip.addEventListener('click', function () {
+            const input = document.getElementById(this.dataset.target);
+            if (input.value === 'true') { input.value = ''; this.classList.remove('active'); }
+            else { input.value = 'true'; this.classList.add('active'); }
+            updateReport();
+        }));
+
+        // منع الإرسال التقليدي واستبداله بالتحديث التفاعلي
+        form.addEventListener('submit', function (e) { e.preventDefault(); updateReport(); });
+
+        window.resetReport = function () {
+            form.querySelectorAll('input[type=text]').forEach(i => i.value = '');
+            form.querySelectorAll('select').forEach(s => s.value = '');
+            form.querySelectorAll('input[type=hidden]').forEach(h => h.value = '');
+            form.querySelectorAll('.chip[data-target]').forEach(c => c.classList.remove('active'));
+            updateReport();
+        };
+    })();
+</script>
+</body>
+</html>

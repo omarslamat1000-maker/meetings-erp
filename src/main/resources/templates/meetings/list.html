@@ -1,0 +1,89 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl" xmlns:th="http://www.thymeleaf.org" xmlns:sec="http://www.thymeleaf.org/extras/spring-security">
+<head th:replace="~{fragments/common :: head('الاجتماعات')}"></head>
+<body>
+<div class="layout">
+    <div th:replace="~{fragments/common :: sidebar('meetings')}"></div>
+    <div class="main">
+        <div th:replace="~{fragments/common :: topbar('الاجتماعات', 'الاجتماعات')}"></div>
+        <div class="content">
+            <div class="section-title-row">
+                <h2><i class="fa-solid fa-handshake"></i> قائمة الاجتماعات</h2>
+                <a sec:authorize="hasAnyRole('ADMIN','EXECUTIVE','DEPARTMENT')" class="btn btn-gold btn-sm" th:href="@{/meetings/new}"><i class="fa-solid fa-plus"></i> اجتماع جديد</a>
+            </div>
+
+            <!-- الفلاتر التفاعلية -->
+            <div class="card">
+                <form id="meetingFilterForm" method="get" th:action="@{/meetings}">
+                    <div class="filters">
+                        <div class="field"><label>بحث عام (الاجتماع أو المهمة)</label>
+                            <input type="text" name="q" th:value="${filter.q}" placeholder="ابحث في الاجتماعات والمهام..."/></div>
+                        <div class="field"><label>جهة الاجتماع</label>
+                            <select name="departmentId"><option value="">الكل</option>
+                                <option th:each="dep : ${departments}" th:value="${dep.id}" th:text="${dep.name}"
+                                        th:selected="${filter.departmentId == dep.id}"></option></select></div>
+                        <div class="field"><label>المسؤول</label>
+                            <input type="text" name="responsible" th:value="${filter.responsible}" placeholder="اسم المسؤول"/></div>
+                        <div class="field"><label>الحالة</label>
+                            <select name="status"><option value="">الكل</option>
+                                <option th:each="st : ${allStatuses}" th:value="${st.name()}" th:text="${st.arabic}"
+                                        th:selected="${filter.status != null and filter.status.name() == st.name()}"></option></select></div>
+                        <div class="field"><label>محضر الاجتماع</label>
+                            <select name="meetingId"><option value="">الكل</option>
+                                <option th:each="m : ${meetingOptions}" th:value="${m.id}" th:text="${#strings.abbreviate(m.title,40)}"
+                                        th:selected="${filter.meetingId == m.id}"></option></select></div>
+                        <div class="field"><label>تاريخ الاجتماع من</label>
+                            <input type="date" name="dateFrom" th:value="${filter.dateFrom}"/></div>
+                        <div class="field"><label>إلى</label>
+                            <input type="date" name="dateTo" th:value="${filter.dateTo}"/></div>
+                    </div>
+                    <div class="chip-filters">
+                        <span class="chip" onclick="resetMeetingFilters()"><i class="fa-solid fa-rotate-right"></i> إعادة تعيين</span>
+                        <span class="chip" id="meetingSpinner" style="display:none;border:none"><i class="fa-solid fa-spinner fa-spin"></i> جارٍ التحديث...</span>
+                    </div>
+                </form>
+            </div>
+
+            <!-- جدول الاجتماعات (يُحدَّث تفاعليًا) -->
+            <div id="meetingsBody" th:fragment="meetingsBody">
+                <div class="card">
+                    <div class="card-header"><h3><i class="fa-solid fa-table-list"></i> الاجتماعات (<span th:text="${#lists.size(meetings)}"></span>)</h3></div>
+                    <div th:if="${#lists.isEmpty(meetings)}" class="empty-state"><i class="fa-solid fa-inbox"></i><p>لا توجد اجتماعات مطابقة</p></div>
+                    <div class="table-wrap" th:unless="${#lists.isEmpty(meetings)}">
+                        <table class="data">
+                            <thead><tr><th data-sort>محضر الاجتماع</th><th data-sort>الجهة</th><th data-sort>تاريخ الاجتماع</th><th data-sort>عدد المهام</th><th>إجراء</th></tr></thead>
+                            <tbody>
+                            <tr th:each="m : ${meetings}">
+                                <td class="cell-title" th:text="${#strings.abbreviate(m.title,70)}"></td>
+                                <td th:text="${m.department != null ? m.department.name : '—'}"></td>
+                                <td th:text="${m.meetingDateText ?: (m.meetingDate != null ? #temporals.format(m.meetingDate,'yyyy-MM-dd') : '—')}"></td>
+                                <td><span class="badge green" th:text="${m.taskCount}"></span></td>
+                                <td class="row-actions">
+                                    <a class="btn btn-outline btn-sm" th:href="@{'/meetings/' + ${m.id}}"><i class="fa-solid fa-eye"></i></a>
+                                    <a sec:authorize="hasAnyRole('ADMIN','EXECUTIVE','DEPARTMENT')" class="btn btn-light btn-sm" th:href="@{'/meetings/' + ${m.id} + '/edit'}"><i class="fa-solid fa-pen"></i></a>
+                                    <form sec:authorize="hasRole('ADMIN')" th:action="@{'/meetings/' + ${m.id} + '/delete'}" method="post" data-confirm="حذف الاجتماع وكل مهامه؟" style="margin:0">
+                                        <button class="btn btn-danger btn-sm"><i class="fa-solid fa-trash"></i></button></form>
+                                </td>
+                            </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+<div th:replace="~{fragments/common :: toasts}"></div>
+<th:block th:replace="~{fragments/common :: scripts}"></th:block>
+<script>
+    initInteractiveFilters({
+        formId: 'meetingFilterForm',
+        fragmentUrl: '/meetings/fragment',
+        bodyId: 'meetingsBody',
+        pageUrl: '/meetings',
+        spinnerId: 'meetingSpinner',
+        resetName: 'resetMeetingFilters'
+    });
+</script>
+</body>
+</html>
