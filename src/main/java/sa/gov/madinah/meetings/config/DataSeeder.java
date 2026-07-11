@@ -48,11 +48,10 @@ public class DataSeeder implements CommandLineRunner {
             }
         });
 
-        // إنشاء/تحديث هيكل منظومة البنية التحتية وحساباته (idempotent، يعمل في كل تشغيل)
-        ensureInfrastructureOrg();
-
-        if (userRepo.count() > 0) {
-            return; // تم البذر التجريبي مسبقًا
+        // إن كانت القاعدة مهيأة مسبقًا (يوجد حساب admin) نكتفي بتحديث الهيكل ونخرج
+        if (userRepo.existsByUsername("admin")) {
+            ensureInfrastructureOrg();
+            return;
         }
 
         // ---------- الجهات ----------
@@ -154,6 +153,9 @@ public class DataSeeder implements CommandLineRunner {
             m.setTaskCount((int) taskRepo.countByMeetingId(m.getId()));
             meetingRepo.save(m);
         }
+
+        // إنشاء هيكل منظومة البنية التحتية بعد البذر التجريبي (ليرتبط بجهات المهام)
+        ensureInfrastructureOrg();
     }
 
     /** إنشاء هيكل منظومة البنية التحتية (الجهات + التسلسل + الحسابات) دون الإدارات العامة. */
