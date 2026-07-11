@@ -1,7 +1,14 @@
 # ============================================================
 #  إعداد النشر التلقائي على Render (Blueprint)
-#  يبني عبر Dockerfile ويشغّل الحزمة على الخطة المجانية
+#  خدمة ويب عبر Docker + قاعدة PostgreSQL دائمة (تُحفظ البيانات)
 # ============================================================
+databases:
+  - name: meetings-db
+    plan: free
+    region: frankfurt
+    databaseName: meetingsdb
+    user: meetings
+
 services:
   - type: web
     name: meetings-erp
@@ -12,5 +19,27 @@ services:
     healthCheckPath: /login
     autoDeploy: true
     envVars:
+      - key: SPRING_PROFILES_ACTIVE
+        value: postgres
+      - key: DB_HOST
+        fromDatabase:
+          name: meetings-db
+          property: host
+      - key: DB_PORT
+        fromDatabase:
+          name: meetings-db
+          property: port
+      - key: DB_NAME
+        fromDatabase:
+          name: meetings-db
+          property: database
+      - key: DB_USER
+        fromDatabase:
+          name: meetings-db
+          property: user
+      - key: DB_PASS
+        fromDatabase:
+          name: meetings-db
+          property: password
       - key: JAVA_TOOL_OPTIONS
         value: "-Xmx400m"
