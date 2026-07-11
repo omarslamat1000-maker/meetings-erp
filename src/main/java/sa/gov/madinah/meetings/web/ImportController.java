@@ -54,9 +54,12 @@ public class ImportController {
     @PostMapping("/{id}/approve")
     public String approve(@PathVariable Long id,
                           @RequestParam(defaultValue = "false") boolean updateExisting,
+                          @RequestParam(defaultValue = "false") boolean deletePrevious,
                           RedirectAttributes ra) {
-        importService.approve(id, updateExisting);
-        ra.addFlashAttribute("toast", "تم اعتماد الاستيراد وإضافة البيانات إلى قاعدة البيانات");
+        importService.approve(id, updateExisting, deletePrevious);
+        ra.addFlashAttribute("toast", deletePrevious
+                ? "تم استبدال البيانات: حُذفت المهام السابقة وأُضيفت مهام الملف المرفوع فقط"
+                : "تم اعتماد الاستيراد وإضافة البيانات إلى قاعدة البيانات");
         return "redirect:/import";
     }
 

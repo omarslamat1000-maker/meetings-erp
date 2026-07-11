@@ -11,7 +11,9 @@ import sa.gov.madinah.meetings.domain.enums.ImportStatus;
 import sa.gov.madinah.meetings.domain.enums.TaskStatus;
 import sa.gov.madinah.meetings.dto.ImportPreviewResult;
 import sa.gov.madinah.meetings.dto.ImportRowPreview;
+import sa.gov.madinah.meetings.repo.EscalationRepository;
 import sa.gov.madinah.meetings.repo.ExcelImportLogRepository;
+import sa.gov.madinah.meetings.repo.MeetingRepository;
 import sa.gov.madinah.meetings.repo.TaskRepository;
 import sa.gov.madinah.meetings.security.CurrentUser;
 
@@ -29,6 +31,8 @@ public class ExcelImportService {
 
     private final TaskRepository taskRepo;
     private final ExcelImportLogRepository importLogRepo;
+    private final EscalationRepository escalationRepo;
+    private final MeetingRepository meetingRepo;
     private final DepartmentService departmentService;
     private final MeetingService meetingService;
     private final UserService userService;
@@ -38,11 +42,14 @@ public class ExcelImportService {
     private final ObjectMapper objectMapper;
 
     public ExcelImportService(TaskRepository taskRepo, ExcelImportLogRepository importLogRepo,
+                              EscalationRepository escalationRepo, MeetingRepository meetingRepo,
                               DepartmentService departmentService, MeetingService meetingService,
                               UserService userService, StatusNormalizer normalizer,
                               AuditService audit, CurrentUser currentUser, ObjectMapper objectMapper) {
         this.taskRepo = taskRepo;
         this.importLogRepo = importLogRepo;
+        this.escalationRepo = escalationRepo;
+        this.meetingRepo = meetingRepo;
         this.departmentService = departmentService;
         this.meetingService = meetingService;
         this.userService = userService;
@@ -163,15 +170,27 @@ public class ExcelImportService {
         }
     }
 
-    /** اعتماد الاستيراد: إنشاء المهام الجديدة وتحديث المكررة (إن اختير ذلك). */
+    /**
+     * اعتماد الاستيراد: إنشاء المهام الجديدة وتحديث المكررة (إن اختير ذلك).
+     * إذا كان deletePrevious=true، تُحذف كل المهام والاجتماعات السابقة أولًا
+     * ليصبح المحتوى مطابقًا للملف المرفوع فقط.
+     */
     @Transactional
-    public ExcelImportLog approve(Long importLogId, boolean updateExisting) {
+    public ExcelImportLog approve(Long importLogId, boolean updateExisting, boolean deletePrevious) {
         ExcelImportLog log = importLogRepo.findById(importLogId).orElseThrow();
         if (log.getImportStatus() == ImportStatus.APPROVED) {
             return log; // مُعتمد مسبقًا
         }
         ImportPreviewResult preview = readPreview(log);
-        int created = 0, updated = 0;
+        int created = 0, updated = 0, deleted = 0;
+
+        // استبدال كامل: حذف كل المهام والاجتماعات السابقة (مع تبعياتها)
+        if (deletePrevious) {
+            deleted = (int) taskRepo.count();
+            escalationRepo.deleteAll();                       // ترتبط بالمهام (لا تُحذف تلقائيًا)
+            taskRepo.deleteAll();                             // يُسقط المشاركين والتعليقات والسجل تلقائيًا
+            meetingRepo.deleteAll();                          // إزالة الاجتماعات القديمة
+        }
 
         for (ImportRowPreview p : preview.getRows()) {
             if ("خطأ".equals(p.getOutcome())) continue;
@@ -205,11 +224,14 @@ public class ExcelImportService {
         log.setApprovedBy(currentUser.username());
         log.setNewRows(created);
         log.setUpdatedRows(updated);
-        log.setNotes("تم الاعتماد: " + created + " جديدة، " + updated + " محدثة");
+        log.setNotes(deletePrevious
+                ? "استبدال كامل: حُذفت " + deleted + " مهمة سابقة، وأُضيفت " + created + " مهمة من الملف"
+                : "تم الاعتماد: " + created + " جديدة، " + updated + " محدثة");
         ExcelImportLog saved = importLogRepo.save(log);
 
         audit.log("اعتماد استيراد Excel", "ExcelImportLog", saved.getId(), null,
-                "جديدة: " + created + " / محدثة: " + updated);
+                (deletePrevious ? "استبدال كامل - حُذف: " + deleted + " / " : "")
+                        + "جديدة: " + created + " / محدثة: " + updated);
         return saved;
     }
 
