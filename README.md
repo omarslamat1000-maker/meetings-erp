@@ -8,6 +8,18 @@
 
 ---
 
+## 🚀 نشر مباشر (بنقرة واحدة) على Render
+
+[![Deploy to Render](https://render.com/images/deploy-to-render-button.svg)](https://render.com/deploy?repo=https://github.com/omarslamat1000-maker/meetings-erp)
+
+اضغط الزر أعلاه ➜ سجّل الدخول/أنشئ حسابًا مجانيًا على Render ➜ سيقرأ ملف `render.yaml` ويبني عبر `Dockerfile`
+تلقائيًا ➜ خلال دقائق تحصل على رابط دائم مثل `https://meetings-erp.onrender.com`.
+
+> ملاحظة: الخطة المجانية تستخدم قرصًا مؤقتًا (قاعدة H2 تُعاد تهيئتها عند كل إعادة نشر مع بيانات أولية).
+> للبيانات الدائمة أضِف قاعدة **PostgreSQL** من Render وفعّل ملف `application-postgres.properties`.
+
+---
+
 ## 🛠️ التقنيات
 
 | الطبقة | التقنية |

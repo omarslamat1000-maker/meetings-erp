@@ -1,0 +1,16 @@
+# ============================================================
+#  إعداد النشر التلقائي على Render (Blueprint)
+#  يبني عبر Dockerfile ويشغّل الحزمة على الخطة المجانية
+# ============================================================
+services:
+  - type: web
+    name: meetings-erp
+    runtime: docker
+    plan: free
+    region: frankfurt
+    dockerfilePath: ./Dockerfile
+    healthCheckPath: /login
+    autoDeploy: true
+    envVars:
+      - key: JAVA_TOOL_OPTIONS
+        value: "-Xmx400m"
