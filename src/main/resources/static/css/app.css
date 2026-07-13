@@ -268,6 +268,10 @@ table.data tbody tr:nth-child(even):hover { background: var(--green-pale); }
 .cell-title { font-weight: 600; max-width: 340px; }
 .text-muted { color: var(--gray-500); }
 
+/* عرض النص كاملًا مع الالتفاف (بدون اقتطاع) */
+.cell-wrap { white-space: normal; overflow-wrap: anywhere; word-break: break-word; vertical-align: top; }
+td.feedback-cell { max-width: 360px; min-width: 200px; color: var(--gray-700); font-size: 12.5px; }
+
 /* ============== الشارات (Badges) ============== */
 .badge {
   display: inline-flex; align-items: center; gap: 5px;

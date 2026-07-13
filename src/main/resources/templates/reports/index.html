@@ -94,17 +94,18 @@
                     <div th:if="${#lists.isEmpty(tasks)}" class="empty-state"><i class="fa-solid fa-inbox"></i><p>لا توجد مهام مطابقة للفلاتر</p></div>
                     <div class="table-wrap" th:unless="${#lists.isEmpty(tasks)}">
                         <table class="data">
-                            <thead><tr><th>م</th><th>المهمة</th><th>الجهة</th><th>تاريخ الاجتماع</th><th>المسؤول</th><th>الحالة</th><th>سير العمل</th><th>الإنجاز</th><th>التصعيد</th></tr></thead>
+                            <thead><tr><th>م</th><th>المهمة</th><th>الجهة</th><th>تاريخ الاجتماع</th><th>المسؤول</th><th>الحالة</th><th>سير العمل</th><th>الإنجاز</th><th>الإفادة</th><th>التصعيد</th></tr></thead>
                             <tbody>
                             <tr th:each="t : ${tasks}">
                                 <td th:text="${t.taskNumber}"></td>
-                                <td class="cell-title" th:text="${#strings.abbreviate(t.title,70)}"></td>
-                                <td th:text="${t.department != null ? t.department.name : '—'}"></td>
+                                <td class="cell-title cell-wrap" th:text="${t.title}"></td>
+                                <td class="cell-wrap" th:text="${t.department != null ? t.department.name : '—'}"></td>
                                 <td th:text="${t.meeting == null ? '—' : (t.meeting.meetingDateText != null ? t.meeting.meetingDateText : (t.meeting.meetingDate != null ? #temporals.format(t.meeting.meetingDate,'yyyy-MM-dd') : '—'))}"></td>
-                                <td th:text="${#strings.abbreviate(t.mainResponsibleName,25)}"></td>
+                                <td class="cell-wrap" th:text="${t.mainResponsibleName}"></td>
                                 <td><span class="badge" th:classappend="${t.status.color}" th:text="${t.status.arabic}"></span></td>
                                 <td><span class="badge gray" th:text="${t.workflowStatus.arabic}"></span></td>
                                 <td th:text="${t.progressPercentage}+'%'"></td>
+                                <td class="cell-wrap feedback-cell" th:text="${t.feedback ?: '—'}"></td>
                                 <td><span th:if="${t.escalated}" class="badge red" th:text="${t.escalationStatus.arabic}"></span>
                                     <span th:unless="${t.escalated}" class="text-muted">—</span></td>
                             </tr>
@@ -118,6 +119,15 @@
     </div>
 </div>
 <div th:replace="~{fragments/common :: toasts}"></div>
+<style>
+  /* طباعة التقرير أفقيًا مع إظهار كامل النص لكل الأعمدة */
+  @media print {
+    @page { size: A4 landscape; margin: 10mm; }
+    #reportBody table.data { font-size: 8.5px !important; }
+    #reportBody .cell-wrap, #reportBody td.feedback-cell { max-width: none !important; min-width: 0 !important; white-space: normal !important; }
+    #reportBody td { vertical-align: top; }
+  }
+</style>
 <th:block th:replace="~{fragments/common :: scripts}"></th:block>
 <script>
     (function () {
